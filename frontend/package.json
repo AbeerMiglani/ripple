@@ -16,6 +16,8 @@
     "@tanstack/react-query": "^5.60.0",
     "cytoscape": "^3.30.0",
     "maplibre-gl": "^6.10.0",
+    "pmtiles": "^4.5.0",
+    "protomaps-themes-base": "^4.5.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.0"

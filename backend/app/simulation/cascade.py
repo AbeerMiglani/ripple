@@ -16,11 +16,44 @@ logger = logging.getLogger(__name__)
 #: bound via ``max_waves`` -- see ``app.simulation.runner``.
 DEFAULT_MAX_WAVES = 50
 
+try:
+    from ripple_graph_rs import global_efficiency as _rust_global_efficiency
+except ImportError:
+    _rust_global_efficiency = None
+    logger.info("ripple_graph_rs not built; using the pure-Python global efficiency")
+
 
 def calculate_global_efficiency(G: nx.DiGraph, N_baseline: int | None = None) -> float:
     """
     Calculates the global efficiency of the graph.
     Formula: E = (1 / (N*(N-1))) * sum(1 / d(i,j)) for all i != j
+
+    Dispatches to the Rust extension (``ripple_graph_rs``) when it has been
+    built, since this all-pairs-shortest-path walk is called twice per
+    ``run_cascade`` and the recommendation engine reruns ``run_cascade`` per
+    candidate. Falls back to ``_calculate_global_efficiency_py`` otherwise --
+    both paths must stay numerically identical, see
+    ``tests/test_global_efficiency_parity.py``.
+    """
+    N = N_baseline if N_baseline is not None else len(G)
+
+    if N < 2:
+        return 0.0
+
+    if _rust_global_efficiency is None:
+        return _calculate_global_efficiency_py(G, N_baseline)
+
+    nodes = list(G.nodes)
+    index = {node: i for i, node in enumerate(nodes)}
+    edges = [(index[u], index[v]) for u, v in G.edges()]
+    return _rust_global_efficiency(len(nodes), edges, N_baseline)
+
+
+def _calculate_global_efficiency_py(G: nx.DiGraph, N_baseline: int | None = None) -> float:
+    """
+    Pure-Python implementation of ``calculate_global_efficiency``. Kept as
+    both the fallback path for environments without the Rust extension built
+    and the correctness oracle the Rust path is checked against.
     """
     N = N_baseline if N_baseline is not None else len(G)
 

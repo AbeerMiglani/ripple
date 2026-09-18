@@ -15,6 +15,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  optimizeDeps: {
+    // maplibre-gl ships a separate worker bundle that it loads at runtime via
+    // `new URL(..., import.meta.url)`. Vite's dep pre-bundler only sees the
+    // main entry point, rewrites its import.meta.url, and never copies the
+    // sibling worker file alongside it -- so the worker 404s in dev (fine in
+    // `vite build`, which bundles it correctly). Excluding it makes Vite serve
+    // the package straight from node_modules, where the relative path holds.
+    exclude: ["maplibre-gl"],
+  },
   server: {
     port: 5173,
     proxy: {
