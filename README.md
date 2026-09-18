@@ -1,10 +1,9 @@
 # Ripple
 
-> An interactive simulator that shows how one infrastructure failure spreads through a city.
-
-Built for **Manipal Hackathon 2026**
-**Track:** Disaster Resilience
-**Challenge:** *"Cascading Failure: When One Failure Becomes Many"*
+> Simulates how a single infrastructure failure cascades through a city's
+> power, water, transit and communications network, identifies the assets
+> whose loss does the most damage, and recommends interventions verified by
+> resimulation rather than heuristic estimates.
 
 ---
 
@@ -18,7 +17,7 @@ Built for **Manipal Hackathon 2026**
 ### 1. Clone and configure
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/AbeerMiglani/ripple.git
 cd ripple
 cp .env.example .env
 ```
@@ -248,12 +247,6 @@ Every candidate returned by `GET /api/simulations/{id}/recommendations` carries 
 - **Unresolved Overlap Flag:** The system computes `is_population_capped` and `has_unresolved_overlap`. Both are returned by `GET /api/simulations/{id}` and rendered in the UI, so a capped or overlap-affected estimate is always flagged rather than presented as a precise count.
 - **Cascade Stability:** `cascade_stabilized` is false when a cascade was still spreading at the configured wave guardrail (`MAX_CASCADE_WAVES`, default 50). Such a run returns a valid bounded result and is labelled as truncated in the UI rather than being discarded.
 - **Data Provenance:** Every node carries a `data_quality` label (`observed` / `estimated` / `derived` / `simulated`). The shipped seed dataset is entirely synthetic and is labelled `estimated` throughout — see `data/seed/README.md` for the vocabulary.
-
----
-
-## Team
-
-**SatishSystemsInc.**
 
 ---
 
