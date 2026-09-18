@@ -10,7 +10,10 @@
  */
 
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
-import maplibregl from "maplibre-gl";
+// maplibre-gl 6 switched to ESM-only distribution with no default export
+// (named exports only); a namespace import still gives maplibregl.Map,
+// maplibregl.NavigationControl etc. exactly as the default import used to.
+import * as maplibregl from "maplibre-gl";
 import { Deck } from "@deck.gl/core";
 import { ScatterplotLayer, LineLayer } from "@deck.gl/layers";
 import type { InfraNode, InfraEdge, EdgeType } from "../types";
@@ -299,7 +302,9 @@ export default function MapView({ nodes, edges }: MapViewProps) {
       },
       center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
       zoom: INITIAL_VIEW.zoom,
-      antialias: true,
+      // maplibre-gl 6 moved this under canvasContextAttributes; it was a
+      // top-level MapOptions field before.
+      canvasContextAttributes: { antialias: true },
     });
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");
