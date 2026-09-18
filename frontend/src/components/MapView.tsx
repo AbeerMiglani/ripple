@@ -19,6 +19,7 @@ import { useUIStore } from "../stores/uiStore";
 import { useSimulationStore } from "../stores/simulationStore";
 import { EmptyMapState, LoadingMapState, ErrorMapState } from "./shared/MapStateOverlay";
 import Banner from "./shared/Banner";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 interface MapViewProps {
   nodes: InfraNode[];
@@ -141,15 +142,8 @@ export default function MapView({ nodes, edges }: MapViewProps) {
     return () => cancelAnimationFrame(frame);
   }, [hasFailedNodes]);
 
-  // Node lookup for edge rendering and the blast-radius layer. A real useMemo
-  // rather than a useCallback factory: the previous version handed back a new
-  // function that built a fresh Map on every single call, including the one
-  // inside updateLayers that ran every render.
-  const nodeById = useMemo(() => {
-    const map = new Map<string, InfraNode>();
-    for (const n of nodes) map.set(n.id, n);
-    return map;
-  }, [nodes]);
+  // Node lookup for edge rendering and the blast-radius layer.
+  const nodeById = useNodeLookup(nodes);
 
   const visibleEdgeTypes = useMemo(() => new Set(edges.map((e) => e.edge_type)), [edges]);
 

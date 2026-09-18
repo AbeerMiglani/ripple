@@ -40,6 +40,29 @@ export default function CollapsiblePane({
     [width]
   );
 
+  // Keyboard equivalent of the drag gesture, per the ARIA window-splitter
+  // pattern: the handle is a focusable separator, arrow keys nudge it, and
+  // Home/End jump to the bounds — so resizing is not pointer-only.
+  const RESIZE_STEP = 24;
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setWidth((w) => Math.max(minWidth, w - RESIZE_STEP));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setWidth((w) => Math.min(maxWidth, w + RESIZE_STEP));
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        setWidth(minWidth);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        setWidth(maxWidth);
+      }
+    },
+    [minWidth, maxWidth]
+  );
+
   // Tracked on the window rather than the handle so a fast drag that outruns
   // the 5px grip does not silently drop the gesture.
   useEffect(() => {
@@ -156,7 +179,15 @@ export default function CollapsiblePane({
 
       <div
         onPointerDown={onPointerDown}
-        title="Drag to resize"
+        onKeyDown={onKeyDown}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={`Resize ${title.toLowerCase()}`}
+        aria-valuenow={width}
+        aria-valuemin={minWidth}
+        aria-valuemax={maxWidth}
+        tabIndex={0}
+        title="Drag to resize, or focus and use the arrow keys"
         style={{
           position: "absolute",
           top: 0,

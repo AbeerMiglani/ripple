@@ -22,6 +22,7 @@ import ProvenanceTag from "./shared/ProvenanceTag";
 import Banner from "./shared/Banner";
 import Section from "./shared/Section";
 import { useDemoStore } from "../demo/demoStore";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 function interventionLabel(rec: MitigationRecommendation, nodeLookup: Map<string, InfraNode>) {
   const isAddEdge = rec.intervention_type === "add_edge";
@@ -99,7 +100,7 @@ export default function RecommendationPanel() {
   const networkId = useUIStore((s) => s.networkId);
   const { data: topology } = useNetworkTopology(networkId);
 
-  const nodeLookup = new Map<string, InfraNode>((topology?.nodes ?? []).map((n) => [n.id, n]));
+  const nodeLookup = useNodeLookup(topology?.nodes);
 
   // Rank-1 staged review state. Snapshotting the recommendation + baseline at
   // the moment review starts (rather than re-reading the live `result` /

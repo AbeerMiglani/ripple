@@ -2,10 +2,10 @@ import React, { useState, useMemo } from "react";
 import { useCompareScenarios, useNetworkTopology } from "../api/hooks";
 import { useSimulationStore } from "../stores/simulationStore";
 import { useUIStore } from "../stores/uiStore";
-import type { InfraNode } from "../types";
 import { comparablePopulation } from "../types";
 import Section from "./shared/Section";
 import ProvenanceTag from "./shared/ProvenanceTag";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 const selectStyle: React.CSSProperties = {
   width: "100%",
@@ -25,13 +25,7 @@ const ScenarioCompare: React.FC = () => {
   const lastAppliedScenarioId = useSimulationStore((s) => s.lastAppliedScenarioId);
 
   const { data: topology } = useNetworkTopology(networkId);
-  const nodeLookup = useMemo(() => {
-    const map = new Map<string, InfraNode>();
-    if (topology?.nodes) {
-      for (const n of topology.nodes) map.set(n.id, n);
-    }
-    return map;
-  }, [topology]);
+  const nodeLookup = useNodeLookup(topology?.nodes);
 
   const [selectedBaselineId, setSelectedBaselineId] = useState<string>("");
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("");
@@ -83,9 +77,14 @@ const ScenarioCompare: React.FC = () => {
   const activeBaselineId = selectedBaselineId || baselineSimulationId || baselineOptions.find((o) => o.isBaseline)?.id || baselineOptions[0]?.id || "";
   const activeScenarioId = selectedScenarioId || lastAppliedScenarioId || scenarioOptions[0]?.id || "";
 
+  // Both ids only ever come from real backend records (`.id` on a simulation
+  // or scenario) or the empty placeholder option, so plain truthiness is the
+  // actual "is this a real selection" check -- a length threshold was making
+  // the same decision less legibly, and would break silently and without
+  // error if ids were ever shortened.
   const { data, isLoading, error } = useCompareScenarios(
-    activeBaselineId && activeBaselineId.length > 30 ? activeBaselineId : null,
-    activeScenarioId && activeScenarioId.length > 30 ? activeScenarioId : null
+    activeBaselineId || null,
+    activeScenarioId || null
   );
 
   return (

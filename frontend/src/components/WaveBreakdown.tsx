@@ -3,13 +3,13 @@
  * assets that failed in it. Clicking a row isolates that wave on the map
  * (reuses the existing CascadeTimeline scrubber state via setWave).
  */
-import React, { useMemo } from "react";
+import React from "react";
 import { useSimulationStore } from "../stores/simulationStore";
 import { useNetworkTopology } from "../api/hooks";
 import { useUIStore } from "../stores/uiStore";
-import type { InfraNode } from "../types";
 import { marginalFailures } from "../types";
 import Section from "./shared/Section";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 const WAVE_COLORS = ["var(--rp-wave-0)", "var(--rp-wave-1)", "var(--rp-wave-2)"];
 
@@ -20,12 +20,7 @@ export default function WaveBreakdown() {
   const isRunning = useSimulationStore((s) => s.isRunning);
   const networkId = useUIStore((s) => s.networkId);
   const { data: topology } = useNetworkTopology(networkId);
-
-  const nodeLookup = useMemo(() => {
-    const map = new Map<string, InfraNode>();
-    if (topology?.nodes) for (const n of topology.nodes) map.set(n.id, n);
-    return map;
-  }, [topology]);
+  const nodeLookup = useNodeLookup(topology?.nodes);
 
   const state = isRunning
     ? "Computing"
