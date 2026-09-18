@@ -69,6 +69,12 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type", "X-API-Key"],
+    # Browsers hide non-"simple" response headers from JS on a cross-origin
+    # request unless the server explicitly exposes them. The bundled frontend
+    # never needs this (Vite proxies /api same-origin, in dev and in the
+    # containerized demo alike), but a direct cross-origin API consumer
+    # otherwise cannot read the pagination headers networks.py sets.
+    expose_headers=["X-Total-Count", "X-Has-More"],
 )
 
 app.include_router(networks_router, prefix="/api")
