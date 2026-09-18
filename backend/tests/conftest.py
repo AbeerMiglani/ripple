@@ -320,3 +320,4 @@ if "app.security" not in sys.modules:
     mock_sec.require_operator = MagicMock()
     mock_sec.require_viewer = MagicMock()
     mock_sec.require_admin = MagicMock()
+    mock_sec.websocket_principal = MagicMock()
