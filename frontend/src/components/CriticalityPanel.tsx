@@ -1,60 +1,23 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import { useCentrality, useNetworkTopology } from "../api/hooks";
 import { useUIStore } from "../stores/uiStore";
-import type { CentralityScore, InfraNode } from "../types";
 import Section from "./shared/Section";
 import { UI_FLAGS } from "../config/uiFlags";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 const CriticalityPanel: React.FC = () => {
   const networkId = useUIStore((s) => s.networkId);
   const [metric, setMetric] = useState<"betweenness" | "pagerank">("betweenness");
-  const { data: defaultScores, isLoading: isDefaultLoading } = useCentrality(networkId);
+  // Keyed on (networkId, metric), so switching metrics is a cache lookup
+  // after the first fetch rather than a re-fetch every time, and shares the
+  // same request-and-error handling every other panel gets from React Query.
+  const { data: scores, isLoading } = useCentrality(networkId, metric);
   const { data: topology } = useNetworkTopology(networkId);
   const toggleNodeSelection = useUIStore((s) => s.toggleNodeSelection);
   const selectedNodeIds = useUIStore((s) => s.selectedNodeIds);
   const hoverNode = useUIStore((s) => s.setHoveredNode);
 
-  const [metricScores, setMetricScores] = useState<CentralityScore[] | null>(null);
-  const [isLoadingMetric, setIsLoadingMetric] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (!networkId) return;
-    if (metric === "betweenness") {
-      setMetricScores(null);
-      return;
-    }
-    let cancelled = false;
-    setIsLoadingMetric(true);
-    fetch(`/api/networks/${networkId}/centrality?metric=${metric}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Centrality fetch failed");
-        return res.json();
-      })
-      .then((data: CentralityScore[]) => {
-        if (!cancelled) {
-          setMetricScores(data);
-          setIsLoadingMetric(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setIsLoadingMetric(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [networkId, metric]);
-
-  const scores = metric === "betweenness" ? defaultScores : metricScores || defaultScores;
-  const isLoading = metric === "betweenness" ? isDefaultLoading : isLoadingMetric;
-
-  const nodeLookup = useMemo(() => {
-    const map = new Map<string, InfraNode>();
-    if (topology?.nodes) {
-      for (const n of topology.nodes) map.set(n.id, n);
-    }
-    return map;
-  }, [topology]);
+  const nodeLookup = useNodeLookup(topology?.nodes);
 
   const metricToggle = (
     <div style={{ display: "flex", gap: 4 }}>

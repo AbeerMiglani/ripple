@@ -38,11 +38,11 @@ export function useNetworkTopology(networkId: string | null) {
   });
 }
 
-export function useCentrality(networkId: string | null) {
+export function useCentrality(networkId: string | null, metric: "betweenness" | "pagerank" = "betweenness") {
   return useQuery({
-    queryKey: ["networks", networkId, "centrality"],
+    queryKey: ["networks", networkId, "centrality", metric],
     queryFn: async () => {
-      const res = await fetch(`/api/networks/${networkId}/centrality`);
+      const res = await fetch(`/api/networks/${networkId}/centrality?metric=${metric}`);
       if (!res.ok) throw new Error("Failed to fetch centrality");
       return res.json() as Promise<CentralityScore[]>;
     },

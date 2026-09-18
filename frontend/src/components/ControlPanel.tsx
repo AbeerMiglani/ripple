@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useUIStore } from "../stores/uiStore";
 import { useSimulationStore } from "../stores/simulationStore";
 import { useRunSimulation, useSimulationResult, useCreateScenario, useNetworkTopology } from "../api/hooks";
-import type { InfraNode } from "../types";
 import { comparablePopulation } from "../types";
 import ProvenanceTag from "./shared/ProvenanceTag";
 import { UI_FLAGS } from "../config/uiFlags";
 import { useDemoStore } from "../demo/demoStore";
+import { useNodeLookup } from "../hooks/useNodeLookup";
 
 const ControlPanel: React.FC = () => {
   const mode = useUIStore((s) => s.mode);
@@ -19,13 +19,7 @@ const ControlPanel: React.FC = () => {
   const clearRedundancyNodes = useUIStore((s) => s.clearRedundancyNodes);
 
   const { data: topology } = useNetworkTopology(networkId);
-  const nodeLookup = useMemo(() => {
-    const map = new Map<string, InfraNode>();
-    if (topology?.nodes) {
-      for (const n of topology.nodes) map.set(n.id, n);
-    }
-    return map;
-  }, [topology]);
+  const nodeLookup = useNodeLookup(topology?.nodes);
 
   // Per-field selectors, not `useSimulationStore()`. Subscribing to the whole
   // store re-rendered this panel on every animation tick, because `currentWave`
