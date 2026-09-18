@@ -11,6 +11,9 @@ except ImportError:
 
 import networkx as nx
 from celery import shared_task
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -23,6 +26,13 @@ from app.simulation.isolation import isolated_graph
 from app.simulation.population import calculate_population_impact
 
 logger = logging.getLogger(__name__)
+
+#: A dropped Postgres connection or a Redis blip is not a verdict on the
+#: simulation -- rerunning the exact same deterministic computation a moment
+#: later either succeeds or hits the same infra problem again. Anything else
+#: (a bad scenario, a bug in the cascade engine) is not: retrying a
+#: deterministic error just reproduces it three times slower.
+TRANSIENT_INFRA_ERRORS = (OperationalError, RedisConnectionError, RedisTimeoutError)
 
 
 def _setting(name: str, default):
@@ -89,11 +99,38 @@ def apply_scenario_modifications(
     return G_mod
 
 
-@shared_task(bind=True)
+def _mark_failed(db: Session, simulation_id: str, message: str) -> None:
+    """Record a simulation as failed and notify anyone watching it.
+
+    A failure here leaves the session's transaction in a state SQLAlchemy
+    requires rolling back before any further query -- without that, this
+    recovery query itself raises PendingRollbackError and the run is left
+    stuck at status="running" instead of being marked "failed". Matches the
+    pattern already used in app.services.ingestion's own except-then-rollback
+    path.
+    """
+    db.rollback()
+    sim = db.query(SimulationResult).filter(SimulationResult.id == simulation_id).first()
+    if sim:
+        sim.status = "failed"
+        sim.error_message = message
+        db.commit()
+    try:
+        get_redis_client().publish(f"sim_{simulation_id}", json.dumps({"status": "failed"}))
+    except Exception:
+        # The DB row -- the durable record every caller actually polls -- is
+        # already correct at this point. A missed pub/sub push is a degraded
+        # notice, not a lost result, and is not worth failing the handler
+        # over -- especially since a Redis blip is often the very reason
+        # this path was reached.
+        logger.warning("could not publish failure notice for simulation %s", simulation_id, exc_info=True)
+
+
+@shared_task(bind=True, max_retries=3)
 def run_simulation_task(
-    self, 
-    simulation_id: str, 
-    network_id: str, 
+    self,
+    simulation_id: str,
+    network_id: str,
     initial_failures: list[str],
     scenario_id: str | None = None
 ):
@@ -188,21 +225,33 @@ def run_simulation_task(
         # Publish completion event
         get_redis_client().publish(f"sim_{simulation_id}", json.dumps({"status": "completed"}))
         
+    except TRANSIENT_INFRA_ERRORS as exc:
+        db.rollback()
+        if self.request.retries < self.max_retries:
+            # Exponential backoff, capped at 30s: a dropped connection is
+            # usually back within a couple of seconds, and this bounds how
+            # long a truly wedged datastore keeps a worker slot occupied
+            # retrying. The row is left at status="running" -- a caller
+            # polling it sees an in-progress run, not a false failure that
+            # then mysteriously un-fails itself a few seconds later.
+            countdown = min(2**self.request.retries, 30)
+            logger.warning(
+                "transient infra error running simulation %s (attempt %s/%s), retrying in %ss",
+                simulation_id, self.request.retries + 1, self.max_retries + 1, countdown,
+                exc_info=exc,
+            )
+            raise self.retry(exc=exc, countdown=countdown)
+        logger.exception("simulation %s failed after exhausting retries on transient infra errors", simulation_id)
+        _mark_failed(
+            db,
+            simulation_id,
+            "Simulation execution failed after repeated transient infrastructure errors. "
+            "Consult server logs with the simulation ID.",
+        )
+        raise
     except Exception:
         logger.exception("simulation %s failed", simulation_id)
-        # A failure in the final db.commit() above leaves the session's
-        # transaction in a state SQLAlchemy requires rolling back before any
-        # further query — without this, the recovery query below raises
-        # PendingRollbackError and the run is left stuck at status="running"
-        # instead of being marked "failed". Matches the pattern already used
-        # in app.services.ingestion's own except-then-rollback path.
-        db.rollback()
-        sim = db.query(SimulationResult).filter(SimulationResult.id == simulation_id).first()
-        if sim:
-            sim.status = "failed"
-            sim.error_message = "Simulation execution failed. Consult server logs with the simulation ID."
-            db.commit()
-        get_redis_client().publish(f"sim_{simulation_id}", json.dumps({"status": "failed"}))
+        _mark_failed(db, simulation_id, "Simulation execution failed. Consult server logs with the simulation ID.")
         raise
     finally:
         db.close()

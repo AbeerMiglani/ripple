@@ -288,7 +288,11 @@ if "app.db.postgres" not in sys.modules:
 # redis / app.db.redis
 # ---------------------------------------------------------------------------
 if "app.db.redis" not in sys.modules:
-    _make_mock_module("redis")
+    mock_redis = _make_mock_module("redis")
+    mock_redis_exceptions = _make_mock_module("redis.exceptions")
+    mock_redis_exceptions.ConnectionError = type("ConnectionError", (Exception,), {})
+    mock_redis_exceptions.TimeoutError = type("TimeoutError", (Exception,), {})
+    mock_redis.exceptions = mock_redis_exceptions
     mock_redis_mod = _make_mock_module("app.db.redis")
     mock_redis_mod.get_redis_client = MagicMock()
     mock_redis_mod.get_async_redis_client = MagicMock()
