@@ -21,6 +21,9 @@ frontend/dist/
 .vite/
 *.tsbuildinfo
 
+# Rust
+target/
+
 # Environment
 .env
 !.env.example

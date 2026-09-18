@@ -189,6 +189,8 @@ ripple/
 │   │   ├── api/                # REST + WebSocket routes
 │   │   ├── services/           # Business logic
 │   │   └── simulation/         # Cascade engine
+│   ├── native/
+│   │   └── ripple_graph_rs/    # Optional Rust acceleration (see its README)
 │   └── tests/
 ├── frontend/
 │   └── src/
