@@ -4,9 +4,11 @@
  * Renders infrastructure nodes as colored circles and edges as lines,
  * colored by edge_type. Failed nodes pulse red during cascade animation.
  * Overlays the mockup's empty/loading/error states and a legend + road
- * layer toggle, all on top of the real OpenStreetMap basemap (kept as-is —
- * this network is georeferenced to real Manipal coordinates, unlike the
- * design mockup's synthetic "no basemap" network view).
+ * layer toggle, all on top of a self-hosted Protomaps vector basemap (this
+ * network is georeferenced to real Manipal coordinates, unlike the design
+ * mockup's synthetic "no basemap" network view). The basemap is a local
+ * PMTiles file served as a static asset rather than raster tiles from a
+ * third-party host — see data/tiles/README.md for why.
  */
 
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
@@ -14,6 +16,8 @@ import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 // (named exports only); a namespace import still gives maplibregl.Map,
 // maplibregl.NavigationControl etc. exactly as the default import used to.
 import * as maplibregl from "maplibre-gl";
+import { Protocol as PMTilesProtocol } from "pmtiles";
+import { layers as protomapsLayers, namedTheme } from "protomaps-themes-base";
 import { Deck } from "@deck.gl/core";
 import { ScatterplotLayer, LineLayer } from "@deck.gl/layers";
 import type { InfraNode, InfraEdge, EdgeType } from "../types";
@@ -51,6 +55,27 @@ const EDGE_COLORS: Record<EdgeType, [number, number, number, number]> = {
   road_link: [100, 116, 139, 110],
   depends_on: [197, 143, 196, 150],
 };
+
+// Protomaps vector basemap, self-hosted as a static PMTiles file (see
+// data/tiles/README.md) instead of raster tiles from a third-party host.
+// The "pmtiles://" protocol must be registered globally before any Map with
+// a pmtiles source is constructed; the module-level flag guards against
+// double registration across remounts (React StrictMode, hot reload).
+let pmtilesProtocolRegistered = false;
+function ensurePmtilesProtocolRegistered() {
+  if (pmtilesProtocolRegistered) return;
+  const protocol = new PMTilesProtocol();
+  maplibregl.addProtocol("pmtiles", protocol.tile);
+  pmtilesProtocolRegistered = true;
+}
+
+const BASEMAP_SOURCE_ID = "protomaps";
+// A leading "/" (rather than an absolute origin) keeps this working
+// unchanged across the Vite dev server, the built dist/ bundle, and the
+// Docker Compose frontend service, all of which serve it at the same path.
+const BASEMAP_PMTILES_URL = "pmtiles:///tiles/manipal.pmtiles";
+const BASEMAP_ATTRIBUTION =
+  '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, © <a href="https://protomaps.com" target="_blank">Protomaps</a>';
 
 /**
  * The tooltip is built as an HTML string, so anything interpolated into it has
@@ -278,27 +303,27 @@ export default function MapView({ nodes, edges }: MapViewProps) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    ensurePmtilesProtocolRegistered();
+
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: {
         version: 8,
         sources: {
-          osm: {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-            attribution: "© OpenStreetMap contributors",
+          [BASEMAP_SOURCE_ID]: {
+            type: "vector",
+            url: BASEMAP_PMTILES_URL,
+            attribution: BASEMAP_ATTRIBUTION,
           },
         },
-        layers: [
-          {
-            id: "osm-tiles",
-            type: "raster",
-            source: "osm",
-            minzoom: 0,
-            maxzoom: 19,
-          },
-        ],
+        // protomaps-themes-base's layers() builds the full basemap style
+        // (earth/water/landuse/roads/buildings/boundaries/labels) against
+        // this source, so no hand-written layer list is needed here. Label
+        // layers reference "text-field" but this style sets no "glyphs" URL
+        // -- self-hosting font glyphs is a separate concern from the vector
+        // tile source this task replaces, so labels render as geometry
+        // only, without text.
+        layers: protomapsLayers(BASEMAP_SOURCE_ID, namedTheme("dark")),
       },
       center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
       zoom: INITIAL_VIEW.zoom,
