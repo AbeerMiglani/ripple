@@ -19,6 +19,11 @@ from app.config import settings
 from app.db.neo4j import close_neo4j_driver, verify_neo4j_connection
 from app.db.postgres import verify_postgres_connection
 from app.db.redis import verify_redis_connection
+from app.logging_config import REQUEST_ID_HEADER, add_correlation_id, configure_logging
+
+# Before anything else logs a line, including the lifespan startup checks
+# below -- every app.* logger propagates to the root logger this configures.
+configure_logging()
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +79,9 @@ app.add_middleware(
     # never needs this (Vite proxies /api same-origin, in dev and in the
     # containerized demo alike), but a direct cross-origin API consumer
     # otherwise cannot read the pagination headers networks.py sets.
-    expose_headers=["X-Total-Count", "X-Has-More"],
+    expose_headers=["X-Total-Count", "X-Has-More", REQUEST_ID_HEADER],
 )
+app.middleware("http")(add_correlation_id)
 
 app.include_router(networks_router, prefix="/api")
 app.include_router(simulations_router, prefix="/api")

@@ -5,8 +5,10 @@ Shared between the backend (for .delay() calls) and the worker process.
 """
 
 from celery import Celery
+from celery.signals import setup_logging
 
 from app.config import settings
+from app.logging_config import configure_logging
 
 celery_app = Celery(
     "ripple",
@@ -36,3 +38,16 @@ celery_app.conf.update(
     include=["app.simulation.runner"]
 )
 celery_app.autodiscover_tasks(["app.simulation"])
+
+
+@setup_logging.connect
+def _use_app_logging_config(**_kwargs):
+    """Replace Celery's own default logging setup with the app's.
+
+    Connecting anything to this signal tells Celery to skip its own default
+    configuration entirely and trust the receiver instead -- otherwise the
+    worker process logs in Celery's own plain-text format, only the API
+    process would emit structured JSON, and a task's logs would carry no
+    correlation id at all.
+    """
+    configure_logging()

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.postgres import SessionLocal
 from app.db.redis import get_redis_client
+from app.logging_config import correlation_id_var
 from app.models.network import Edge, Node, Scenario, SimulationResult
 from app.services.graph_build import build_graph
 from app.simulation.cascade import run_cascade
@@ -139,6 +140,12 @@ def run_simulation_task(
     If scenario_id is provided, applies network modifications first.
     Publishes wave events to Redis for WebSocket streaming.
     """
+    # Every log line this attempt produces carries the same tag a retried
+    # attempt's logs also will, so grepping one simulation's logs works
+    # across attempts and across the API/worker process boundary alike --
+    # even though the API side's own request id is a different value, both
+    # name the same simulation_id in the message text.
+    correlation_token = correlation_id_var.set(f"sim:{simulation_id}")
     db: Session = SessionLocal()
     try:
         sim = db.query(SimulationResult).filter(SimulationResult.id == simulation_id).first()
@@ -255,3 +262,4 @@ def run_simulation_task(
         raise
     finally:
         db.close()
+        correlation_id_var.reset(correlation_token)
