@@ -1,0 +1,2645 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78988543773418,
+          13.343098112601206
+        ]
+      },
+      "properties": {
+        "id": "affac5c2-7bbf-469c-9e31-ffa4a1889d8f",
+        "name": "Grid Substation PS-01",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 85.1182271277307,
+        "failure_threshold": 1.0,
+        "population_served": 13363,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77787875855164,
+          13.364845304671256
+        ]
+      },
+      "properties": {
+        "id": "7a80d130-da1c-458f-9e5f-fd87f6a61e78",
+        "name": "Grid Substation PS-02",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 86.21484104965322,
+        "failure_threshold": 1.0,
+        "population_served": 23782,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78449998839496,
+          13.333091079411078
+        ]
+      },
+      "properties": {
+        "id": "9b846c7b-7e28-40b6-ad19-5908c2fd601a",
+        "name": "Grid Substation PS-03",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 87.30538992409204,
+        "failure_threshold": 1.0,
+        "population_served": 26085,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78058670931742,
+          13.335166306476188
+        ]
+      },
+      "properties": {
+        "id": "154d5ce3-8990-4eb0-baf3-f5e4539c470a",
+        "name": "Grid Substation PS-04",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 82.39934079367927,
+        "failure_threshold": 1.0,
+        "population_served": 12645,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78361766183981,
+          13.352710619969457
+        ]
+      },
+      "properties": {
+        "id": "f8bee0a3-4f08-47cb-9f22-3c98a12a5d07",
+        "name": "Grid Substation PS-05",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 84.49654832567936,
+        "failure_threshold": 1.0,
+        "population_served": 26065,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80677151861238,
+          13.354077112396281
+        ]
+      },
+      "properties": {
+        "id": "4a2591cd-1700-4323-9a19-55e1c88dcc19",
+        "name": "Grid Substation PS-06",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 82.51513103750779,
+        "failure_threshold": 1.0,
+        "population_served": 21686,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78995928679664,
+          13.367945831186606
+        ]
+      },
+      "properties": {
+        "id": "85387a99-3aa8-42cb-93a2-8cf35214de1d",
+        "name": "Grid Substation PS-07",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 85.13587546629589,
+        "failure_threshold": 1.0,
+        "population_served": 12500,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79953679768198,
+          13.36437880371326
+        ]
+      },
+      "properties": {
+        "id": "98f080b0-6524-4d18-9edb-a739ec6d871c",
+        "name": "Grid Substation PS-08",
+        "node_type": "power_substation",
+        "capacity": 100.0,
+        "current_load": 85.38064720422938,
+        "failure_threshold": 1.0,
+        "population_served": 19424,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78005022748715,
+          13.359653239838163
+        ]
+      },
+      "properties": {
+        "id": "5450515c-1deb-44ab-9b8c-07945b0087b8",
+        "name": "Water Facility WS-01",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 76.0,
+        "failure_threshold": 1.0,
+        "population_served": 24460,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78046183243129,
+          13.356409445124905
+        ]
+      },
+      "properties": {
+        "id": "fdcf559f-50fa-4319-8aa4-cfeb962ba6ed",
+        "name": "Water Facility WS-02",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 75.53266901860485,
+        "failure_threshold": 1.0,
+        "population_served": 22554,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79810543197169,
+          13.339545481790413
+        ]
+      },
+      "properties": {
+        "id": "b218f028-d53a-4be1-aa8f-74a2f27ee1cd",
+        "name": "Water Facility WS-03",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 78.78576724467229,
+        "failure_threshold": 1.0,
+        "population_served": 23166,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79882977509446,
+          13.33338152759955
+        ]
+      },
+      "properties": {
+        "id": "ed47748a-0a3e-4a82-8b1c-42d947aa97d8",
+        "name": "Water Facility WS-04",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 74.0,
+        "failure_threshold": 1.0,
+        "population_served": 24833,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80173328351843,
+          13.33498991383667
+        ]
+      },
+      "properties": {
+        "id": "b894ebac-18cb-4f26-b104-0ca3d1d68f8a",
+        "name": "Water Facility WS-05",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 77.86979070961216,
+        "failure_threshold": 1.0,
+        "population_served": 21880,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.788246084714,
+          13.364926815819143
+        ]
+      },
+      "properties": {
+        "id": "50d7111a-c358-4996-8a44-73d426e882e1",
+        "name": "Water Facility WS-06",
+        "node_type": "water_station",
+        "capacity": 80.0,
+        "current_load": 77.69424127615845,
+        "failure_threshold": 1.0,
+        "population_served": 15415,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77414751574645,
+          13.351506269601193
+        ]
+      },
+      "properties": {
+        "id": "35259639-93b1-4856-b914-a81299856c55",
+        "name": "Hospital MC-01",
+        "node_type": "hospital",
+        "capacity": 60.0,
+        "current_load": 56.36264399422522,
+        "failure_threshold": 1.0,
+        "population_served": 4943,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77849457181203,
+          13.362719950454567
+        ]
+      },
+      "properties": {
+        "id": "64a2a8be-207f-4870-a7be-f6511c145d9f",
+        "name": "Hospital MC-02",
+        "node_type": "hospital",
+        "capacity": 60.0,
+        "current_load": 42.05152760703974,
+        "failure_threshold": 1.0,
+        "population_served": 3548,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80073490090314,
+          13.358199967105604
+        ]
+      },
+      "properties": {
+        "id": "9a8dcc61-e4a4-4778-8495-799877582401",
+        "name": "Hospital MC-03",
+        "node_type": "hospital",
+        "capacity": 60.0,
+        "current_load": 57.68612298800457,
+        "failure_threshold": 1.0,
+        "population_served": 4480,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77587746258162,
+          13.33682938779862
+        ]
+      },
+      "properties": {
+        "id": "7fe16381-2d33-4ef6-a327-7ec5258f2d60",
+        "name": "Hospital MC-04",
+        "node_type": "hospital",
+        "capacity": 60.0,
+        "current_load": 49.13592691336619,
+        "failure_threshold": 1.0,
+        "population_served": 2922,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78554464062665,
+          13.366364736013344
+        ]
+      },
+      "properties": {
+        "id": "b8295d70-03ff-4421-9d5a-924ff7b33d0e",
+        "name": "Cell Tower TC-01",
+        "node_type": "telecom_tower",
+        "capacity": 40.0,
+        "current_load": 32.0,
+        "failure_threshold": 1.0,
+        "population_served": 9112,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77624310196246,
+          13.342770819033177
+        ]
+      },
+      "properties": {
+        "id": "a2229652-435a-41f0-8f5b-2ce05fa42f2d",
+        "name": "Cell Tower TC-02",
+        "node_type": "telecom_tower",
+        "capacity": 40.0,
+        "current_load": 30.0,
+        "failure_threshold": 1.0,
+        "population_served": 13223,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77348471922755,
+          13.355650933779007
+        ]
+      },
+      "properties": {
+        "id": "063abd11-7595-4c4d-8d3c-9f83d5e3955e",
+        "name": "Road Junction RJ-01",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.038960908810324,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78177150841383,
+          13.354427111600234
+        ]
+      },
+      "properties": {
+        "id": "31e71bce-61df-4437-8596-1fd421a1f31e",
+        "name": "Road Junction RJ-02",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.18553779022534,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78451177141343,
+          13.35571114522047
+        ]
+      },
+      "properties": {
+        "id": "8fcf0c5b-1199-4585-acbf-8af796ec9e19",
+        "name": "Road Junction RJ-03",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 69.21342424425892,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78166078452846,
+          13.366073010448094
+        ]
+      },
+      "properties": {
+        "id": "81c66923-9f18-4547-8eee-e2671b42232e",
+        "name": "Road Junction RJ-04",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 57.19871728442754,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78121527869999,
+          13.346847483978328
+        ]
+      },
+      "properties": {
+        "id": "30d82de9-3fca-48f4-a949-86c2285fa386",
+        "name": "Road Junction RJ-05",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 59.33312215078872,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79032843265983,
+          13.332490474079293
+        ]
+      },
+      "properties": {
+        "id": "d66b0576-b202-4b5f-9c04-95a629dd36aa",
+        "name": "Road Junction RJ-06",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.68458979693621,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79358766682955,
+          13.365933747849436
+        ]
+      },
+      "properties": {
+        "id": "1af89ba0-67fe-4bb8-8411-11d46b629927",
+        "name": "Road Junction RJ-07",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.80138315508621,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77685449928336,
+          13.35513066640757
+        ]
+      },
+      "properties": {
+        "id": "6a97735e-c3d2-4e9a-b4fb-e04053f0c22a",
+        "name": "Road Junction RJ-08",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.76902083893614,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78581983928245,
+          13.366454731249535
+        ]
+      },
+      "properties": {
+        "id": "8e4a1b8c-1a86-4dc9-8762-4559c408313a",
+        "name": "Road Junction RJ-09",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.17662308408628,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80840608905712,
+          13.35784226100698
+        ]
+      },
+      "properties": {
+        "id": "fee6b768-d83e-4a16-84f6-6bf7dd3d9194",
+        "name": "Road Junction RJ-10",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.51553080118295,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78341855395932,
+          13.365871401191857
+        ]
+      },
+      "properties": {
+        "id": "4caf1c84-0ce9-45fd-9abc-2a8f48dba6e1",
+        "name": "Road Junction RJ-11",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.97096479929479,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80453801661614,
+          13.336976896243806
+        ]
+      },
+      "properties": {
+        "id": "15bce356-2e95-44ac-8d96-a548ee41da45",
+        "name": "Road Junction RJ-12",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.89173220806588,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80545897425677,
+          13.361220209820283
+        ]
+      },
+      "properties": {
+        "id": "f8726d7a-8d47-4289-9041-ccd00fe73d07",
+        "name": "Road Junction RJ-13",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.32961395591983,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79192319182314,
+          13.344210988697526
+        ]
+      },
+      "properties": {
+        "id": "3ac4f3a1-6e7e-4f94-8224-a4db1d19311d",
+        "name": "Road Junction RJ-14",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.93181072654997,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77774583419844,
+          13.335916735602693
+        ]
+      },
+      "properties": {
+        "id": "04626855-f6c5-4b35-9eb5-50631b1c09c9",
+        "name": "Road Junction RJ-15",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.97583398935759,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79202144599957,
+          13.356679911703308
+        ]
+      },
+      "properties": {
+        "id": "a17d1621-fa48-4315-9247-e9b855664a80",
+        "name": "Road Junction RJ-16",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.92897235697014,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77913030087943,
+          13.350498715294986
+        ]
+      },
+      "properties": {
+        "id": "ff4cd830-c9d7-4e95-b4e6-0bddbc01af4d",
+        "name": "Road Junction RJ-17",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 57.145012640172375,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78870723442584,
+          13.349267488784383
+        ]
+      },
+      "properties": {
+        "id": "a46cbcd3-ddc6-4f7f-a5d0-5e5121ba0283",
+        "name": "Road Junction RJ-18",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.48567181371567,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77448455202841,
+          13.362334214046857
+        ]
+      },
+      "properties": {
+        "id": "523ac7d0-37a8-4a7d-bb58-83f5ae0f8979",
+        "name": "Road Junction RJ-19",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.79513229734788,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78422866939636,
+          13.331431374485248
+        ]
+      },
+      "properties": {
+        "id": "786e7642-6630-4cec-9df6-91cd2d4510df",
+        "name": "Road Junction RJ-20",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 59.459670571675076,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.7856010860127,
+          13.344089408780121
+        ]
+      },
+      "properties": {
+        "id": "1280ef6c-ee8a-4d6a-877f-f9f292484728",
+        "name": "Road Junction RJ-21",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.85092847119591,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79559238746717,
+          13.340624238911207
+        ]
+      },
+      "properties": {
+        "id": "1912fa12-e958-44e8-ab92-0c8880cd701c",
+        "name": "Road Junction RJ-22",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.20243029818772,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78243386836385,
+          13.351488062175415
+        ]
+      },
+      "properties": {
+        "id": "cccc7645-695e-4520-ae8a-c9d8ceb81bcd",
+        "name": "Road Junction RJ-23",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.720583782494714,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79950834826607,
+          13.338996481803061
+        ]
+      },
+      "properties": {
+        "id": "1af11f6b-ae4f-416c-a531-89a18f81f3af",
+        "name": "Road Junction RJ-24",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 52.97072597146495,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80325418969916,
+          13.33721633752507
+        ]
+      },
+      "properties": {
+        "id": "ffc3d776-f1ad-4f03-9120-be4db07c5ac7",
+        "name": "Road Junction RJ-25",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 69.17649002464621,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79583366307632,
+          13.361174591888155
+        ]
+      },
+      "properties": {
+        "id": "75053463-2621-4415-86c0-ceb094267c02",
+        "name": "Road Junction RJ-26",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 66.67599638507036,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78325090568838,
+          13.364737487474214
+        ]
+      },
+      "properties": {
+        "id": "f45c4e2b-2997-42e9-9352-78eab7cfdacc",
+        "name": "Road Junction RJ-27",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.90142351773235,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79050407377648,
+          13.346837335370692
+        ]
+      },
+      "properties": {
+        "id": "dfb74082-c6ba-458f-831e-cdcf017b62db",
+        "name": "Road Junction RJ-28",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.65588952655669,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78274857179757,
+          13.361504852467245
+        ]
+      },
+      "properties": {
+        "id": "7c7fd933-90ff-431a-94e4-037a40b5ad45",
+        "name": "Road Junction RJ-29",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 59.95139359664651,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78027251448468,
+          13.339959761483154
+        ]
+      },
+      "properties": {
+        "id": "6f3fa53b-b869-4592-9e20-e9ca09175b5a",
+        "name": "Road Junction RJ-30",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.414672040028954,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80556147997216,
+          13.354105944835675
+        ]
+      },
+      "properties": {
+        "id": "c64196f3-d1c1-4ecf-a630-0baf9aff20df",
+        "name": "Road Junction RJ-31",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.46686120873971,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.8041465831611,
+          13.35141664690972
+        ]
+      },
+      "properties": {
+        "id": "069c899a-93b4-4966-8845-fe5ca114db10",
+        "name": "Road Junction RJ-32",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 64.21765358291692,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79330841513051,
+          13.364457302338131
+        ]
+      },
+      "properties": {
+        "id": "ba00519d-6650-42c2-826a-1158983e41a6",
+        "name": "Road Junction RJ-33",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.94460921309224,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.7829837101901,
+          13.345030691806295
+        ]
+      },
+      "properties": {
+        "id": "906541b2-b138-4fc2-91d3-0c8b4494d12e",
+        "name": "Road Junction RJ-34",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.61913574322764,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78660204305963,
+          13.352966870537053
+        ]
+      },
+      "properties": {
+        "id": "80e0cd3a-72c8-45ad-aa5e-ee927cdc6f8a",
+        "name": "Road Junction RJ-35",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.817054568011955,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77683674619611,
+          13.343968898827953
+        ]
+      },
+      "properties": {
+        "id": "0e0855fd-b53f-4114-a118-08c43fae16d0",
+        "name": "Road Junction RJ-36",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.40939660804566,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80654924634085,
+          13.353137819754163
+        ]
+      },
+      "properties": {
+        "id": "2170f4bb-9531-48d8-a0e5-5c7542efbbf7",
+        "name": "Road Junction RJ-37",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 67.65332721424888,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80512164912095,
+          13.362265440975543
+        ]
+      },
+      "properties": {
+        "id": "d6cecb81-eef7-4326-81d6-47f81357eeaf",
+        "name": "Road Junction RJ-38",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.22445837324481,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79896411511594,
+          13.348768168441802
+        ]
+      },
+      "properties": {
+        "id": "3b584846-1205-49e5-a580-1d29aa18fc50",
+        "name": "Road Junction RJ-39",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.66021821112734,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80310538011798,
+          13.336163990079891
+        ]
+      },
+      "properties": {
+        "id": "285632ed-33ad-4de3-86b5-9cc9310d60dd",
+        "name": "Road Junction RJ-40",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.74397566081076,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79197303937056,
+          13.34185463204786
+        ]
+      },
+      "properties": {
+        "id": "a97f315f-a636-442e-a85d-38fcdf7d3ae3",
+        "name": "Road Junction RJ-41",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 69.98486694399239,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80842961278057,
+          13.345766269976304
+        ]
+      },
+      "properties": {
+        "id": "79fb2404-f6fc-4ce2-a6fd-f055da313ae3",
+        "name": "Road Junction RJ-42",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.53924562421281,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79516363364881,
+          13.336451944240784
+        ]
+      },
+      "properties": {
+        "id": "c6b475e4-35b5-421d-88b8-df063d93eb51",
+        "name": "Road Junction RJ-43",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.54503706046975,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80504135152191,
+          13.34783870838449
+        ]
+      },
+      "properties": {
+        "id": "9d5f62a7-1451-4acb-ac57-5fa6cb2deded",
+        "name": "Road Junction RJ-44",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 51.89132092116325,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79029963032075,
+          13.35925478057845
+        ]
+      },
+      "properties": {
+        "id": "8877b996-649c-4d48-80e0-af04f2a3f3f7",
+        "name": "Road Junction RJ-45",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 51.86239196041536,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80238204021344,
+          13.343474334816142
+        ]
+      },
+      "properties": {
+        "id": "cc66f25d-7e54-4164-98d8-7069d76ab053",
+        "name": "Road Junction RJ-46",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.901203123228825,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77423888039624,
+          13.36039730843633
+        ]
+      },
+      "properties": {
+        "id": "96159d57-150d-4f14-bc9a-c5989df25044",
+        "name": "Road Junction RJ-47",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.649029278933796,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78715525266078,
+          13.35187981209241
+        ]
+      },
+      "properties": {
+        "id": "2cc2afad-ae15-4f4b-abbf-b220c97ca6ed",
+        "name": "Road Junction RJ-48",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 57.03403451472559,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77318908904638,
+          13.35430467479571
+        ]
+      },
+      "properties": {
+        "id": "02623c29-491f-4956-aa20-6c83369bd6d5",
+        "name": "Road Junction RJ-49",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 54.330848918809515,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80624352898808,
+          13.347001331183787
+        ]
+      },
+      "properties": {
+        "id": "633161ee-a292-4895-9661-ff10312cd7c7",
+        "name": "Road Junction RJ-50",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 65.0249248099389,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78237226243564,
+          13.334520495442895
+        ]
+      },
+      "properties": {
+        "id": "e0734cec-24d3-49d3-bd55-70fbe4f3da3c",
+        "name": "Road Junction RJ-51",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.256627778425916,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80272520010644,
+          13.361011222067779
+        ]
+      },
+      "properties": {
+        "id": "1db8fb93-dfb1-430a-8d87-1aa54fddd096",
+        "name": "Road Junction RJ-52",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 65.63080568070899,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79255022935762,
+          13.344283945752498
+        ]
+      },
+      "properties": {
+        "id": "615cbe8c-4d88-4db6-a195-faf079428512",
+        "name": "Road Junction RJ-53",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 52.1207147366624,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79405386541465,
+          13.346956238816778
+        ]
+      },
+      "properties": {
+        "id": "3c82c23b-0137-4419-8422-8617a9a26fd4",
+        "name": "Road Junction RJ-54",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 66.04634198330271,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80045479937904,
+          13.362618909129818
+        ]
+      },
+      "properties": {
+        "id": "51d0f0f9-4052-4988-9a15-1220e0f64398",
+        "name": "Road Junction RJ-55",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 56.271018129108256,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79629497596657,
+          13.364117394197205
+        ]
+      },
+      "properties": {
+        "id": "e2ae2673-2925-460f-a58c-8471264760e1",
+        "name": "Road Junction RJ-56",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.6363582781854,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79843018682931,
+          13.349690911378755
+        ]
+      },
+      "properties": {
+        "id": "30cefb87-8e17-43e4-9b96-4d1faab5e55d",
+        "name": "Road Junction RJ-57",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.2774106579486,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77900324876157,
+          13.365391934913225
+        ]
+      },
+      "properties": {
+        "id": "7bda346c-475a-489e-88de-0652cd0c9930",
+        "name": "Road Junction RJ-58",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.14084062196736,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79727069514477,
+          13.368390888935314
+        ]
+      },
+      "properties": {
+        "id": "39af1c1b-1521-418c-be49-1a20982433c5",
+        "name": "Road Junction RJ-59",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 54.70450759276415,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79650238071044,
+          13.359252966909619
+        ]
+      },
+      "properties": {
+        "id": "71a4e107-bb70-401a-bd5b-50c12f7931c3",
+        "name": "Road Junction RJ-60",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.22356512792126,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77370408604902,
+          13.362424329947707
+        ]
+      },
+      "properties": {
+        "id": "05d22987-6724-48a7-a257-ac73c6d65283",
+        "name": "Road Junction RJ-61",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 56.29948866065693,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77992640337746,
+          13.34049342667214
+        ]
+      },
+      "properties": {
+        "id": "b23fdf59-c684-45e1-9587-ece6853bf270",
+        "name": "Road Junction RJ-62",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 64.28432592975271,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79231849580103,
+          13.346786174233818
+        ]
+      },
+      "properties": {
+        "id": "93845a5b-c19c-4b89-b862-84c073bd0bd4",
+        "name": "Road Junction RJ-63",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.1557130240852,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79724615888327,
+          13.336216033030125
+        ]
+      },
+      "properties": {
+        "id": "41d70c1c-1bee-4bde-9f8d-3c0bf0bae690",
+        "name": "Road Junction RJ-64",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.51838542199182,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79515935229594,
+          13.345138728511419
+        ]
+      },
+      "properties": {
+        "id": "f9a36cfd-e935-4431-8b86-4b578c259974",
+        "name": "Road Junction RJ-65",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.02523566505368,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.81072725542352,
+          13.349804325486533
+        ]
+      },
+      "properties": {
+        "id": "11325456-bea7-47b0-92ca-6ab7fd29f859",
+        "name": "Road Junction RJ-66",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.83762779043073,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79672330193148,
+          13.366903431511288
+        ]
+      },
+      "properties": {
+        "id": "4e4e7a9d-45b9-407d-a144-0d65a926cbca",
+        "name": "Road Junction RJ-67",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 64.30345362972339,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80929946218733,
+          13.346322175664588
+        ]
+      },
+      "properties": {
+        "id": "da8ad72d-9834-453c-9057-0157cb0b3957",
+        "name": "Road Junction RJ-68",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 56.610961003535344,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77222241597586,
+          13.352047144068363
+        ]
+      },
+      "properties": {
+        "id": "e92dc99e-700f-43ae-8b2b-dce00ebc7ac4",
+        "name": "Road Junction RJ-69",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.31722529565025,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79572357853795,
+          13.340562674522333
+        ]
+      },
+      "properties": {
+        "id": "c75a39e3-0fc6-4bef-9f80-d992ab2dd272",
+        "name": "Road Junction RJ-70",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.71212165101774,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78919820758111,
+          13.352743161191505
+        ]
+      },
+      "properties": {
+        "id": "56793bb5-4416-4cc7-a313-d46b8ab8f17b",
+        "name": "Road Junction RJ-71",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.94896590126497,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78991047991434,
+          13.354738226667447
+        ]
+      },
+      "properties": {
+        "id": "541a6207-d20a-4bf6-8b25-6c7d23be07ba",
+        "name": "Road Junction RJ-72",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.24248278423701,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79170897274864,
+          13.356813591170575
+        ]
+      },
+      "properties": {
+        "id": "39af7616-dc6f-45ec-afa7-2a656509d7d5",
+        "name": "Road Junction RJ-73",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.45167779237637,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78729197862666,
+          13.365235795259208
+        ]
+      },
+      "properties": {
+        "id": "dfadf266-9307-463e-a3af-b661faa25707",
+        "name": "Road Junction RJ-74",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 56.04482338261518,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79975649762719,
+          13.359141585280257
+        ]
+      },
+      "properties": {
+        "id": "4de4ef77-e27d-4a85-8171-97d9b95c9d85",
+        "name": "Road Junction RJ-75",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.30596199394851,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77728252068562,
+          13.352043307684509
+        ]
+      },
+      "properties": {
+        "id": "808ee2b8-417c-40d2-8383-75b55d3910db",
+        "name": "Road Junction RJ-76",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.251860621506765,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80689416823145,
+          13.357147389195957
+        ]
+      },
+      "properties": {
+        "id": "2fcb463b-c00c-480c-8fa5-caf58f3eabd1",
+        "name": "Road Junction RJ-77",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.56834245645444,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78543311092884,
+          13.333629622308722
+        ]
+      },
+      "properties": {
+        "id": "999dd4ab-65d7-4e70-8b19-c32686225c1c",
+        "name": "Road Junction RJ-78",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 61.097962915429235,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77071958180949,
+          13.35429933224347
+        ]
+      },
+      "properties": {
+        "id": "5d8040d7-c444-4269-9023-84260295cc32",
+        "name": "Road Junction RJ-79",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 54.56511587252646,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78930829921742,
+          13.347509146552659
+        ]
+      },
+      "properties": {
+        "id": "ca4c8893-2eca-403f-ad65-5e4f5c1df2ab",
+        "name": "Road Junction RJ-80",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 58.357595393630284,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80573018544979,
+          13.362607828989765
+        ]
+      },
+      "properties": {
+        "id": "6fc4f6e5-225b-4fe9-ae6d-784d4cc784ea",
+        "name": "Road Junction RJ-81",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.5355550041274,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79567108585462,
+          13.352570515868287
+        ]
+      },
+      "properties": {
+        "id": "8da0762a-6325-463d-a43f-eb33c0f1d5c2",
+        "name": "Road Junction RJ-82",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.760176278682536,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77251904599483,
+          13.358323284345799
+        ]
+      },
+      "properties": {
+        "id": "69f4d10c-4b09-4e12-8bc9-c1ac1e2e2f3f",
+        "name": "Road Junction RJ-83",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 66.39726657647233,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78842938941185,
+          13.338422101689735
+        ]
+      },
+      "properties": {
+        "id": "2db1d550-7bf8-470d-8fb4-901e29c29fa3",
+        "name": "Road Junction RJ-84",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 64.86184288822083,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78580550920898,
+          13.352558171913568
+        ]
+      },
+      "properties": {
+        "id": "631d27cb-208e-4821-b9c2-3ecae527e23f",
+        "name": "Road Junction RJ-85",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 62.5571630862547,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79370612162832,
+          13.359201317625551
+        ]
+      },
+      "properties": {
+        "id": "e759936a-b081-434d-9ffc-269828588657",
+        "name": "Road Junction RJ-86",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 54.436773460975765,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80216307219666,
+          13.358322371380972
+        ]
+      },
+      "properties": {
+        "id": "915b3343-f930-406e-aeab-70d9873437ab",
+        "name": "Road Junction RJ-87",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 64.90385426670986,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.7710954986428,
+          13.34504655630756
+        ]
+      },
+      "properties": {
+        "id": "198b590a-6d55-4f8c-9266-89b473cc7f26",
+        "name": "Road Junction RJ-88",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 57.198623411506404,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78295509284537,
+          13.333536435325609
+        ]
+      },
+      "properties": {
+        "id": "a2bbbed2-26d1-4e1a-9d5e-dda532c555c7",
+        "name": "Road Junction RJ-89",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.51523899192928,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80380398786002,
+          13.336898447629855
+        ]
+      },
+      "properties": {
+        "id": "75f53b3e-3c5f-42b9-8b35-35e5b4761849",
+        "name": "Road Junction RJ-90",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 59.185354506524114,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77684022808893,
+          13.355093631700667
+        ]
+      },
+      "properties": {
+        "id": "89c50351-0fdb-4a0d-b1e3-0b966077fbdf",
+        "name": "Road Junction RJ-91",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 67.94044551083877,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.80593373557662,
+          13.343748508215192
+        ]
+      },
+      "properties": {
+        "id": "354a5e80-e125-4a2b-992f-ced2c7271e15",
+        "name": "Road Junction RJ-92",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.16588455856093,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79127832402969,
+          13.337243311559236
+        ]
+      },
+      "properties": {
+        "id": "a0f85729-72a9-4698-9305-bd39e07c0e02",
+        "name": "Road Junction RJ-93",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 50.10623618221915,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78654962210203,
+          13.361444414786483
+        ]
+      },
+      "properties": {
+        "id": "abc7d082-e10f-4ef5-b695-65a27e02fd9d",
+        "name": "Road Junction RJ-94",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 60.464553490631076,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79313314135743,
+          13.362426859270867
+        ]
+      },
+      "properties": {
+        "id": "2c6db576-d0d6-4cbd-8c25-cbb29eb9a388",
+        "name": "Road Junction RJ-95",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 53.45145524802913,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.786676854172,
+          13.339531099100888
+        ]
+      },
+      "properties": {
+        "id": "44a090ec-eb72-4228-8801-f922cd1c04c5",
+        "name": "Road Junction RJ-96",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 55.300297310644474,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.8005030104202,
+          13.363631929671918
+        ]
+      },
+      "properties": {
+        "id": "a57895eb-4ab3-468e-8fbf-c69243c5f3a4",
+        "name": "Road Junction RJ-97",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 68.07012722169644,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.77758110818885,
+          13.35857181923905
+        ]
+      },
+      "properties": {
+        "id": "d84e2dd4-264f-45bd-b2ac-b09efa6e30a8",
+        "name": "Road Junction RJ-98",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 63.91200461721245,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.79321964082494,
+          13.360643395543839
+        ]
+      },
+      "properties": {
+        "id": "b1ba8faf-f9ce-49d2-a02f-a338c3c195ff",
+        "name": "Road Junction RJ-99",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 57.865520623413005,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          74.78721467979582,
+          13.364441455664098
+        ]
+      },
+      "properties": {
+        "id": "21d2305a-5d88-4a32-b0e6-750a6730f897",
+        "name": "Road Junction RJ-100",
+        "node_type": "road_junction",
+        "capacity": 200.0,
+        "current_load": 66.2409340804885,
+        "failure_threshold": 1.0,
+        "population_served": 0,
+        "status": "operational",
+        "is_synthetic": true,
+        "data_source": "synthetic"
+      }
+    }
+  ]
+}

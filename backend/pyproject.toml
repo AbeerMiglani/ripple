@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ripple-backend"
+version = "0.1.0"
+description = "Ripple — Cascading Failure Simulation Platform (Backend)"
+requires-python = ">=3.11"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "websockets>=12,<14",
+    # Database — PostgreSQL + PostGIS
+    "sqlalchemy>=2.0,<3",
+    "geoalchemy2>=0.15,<1",
+    "psycopg2-binary>=2.9,<3",
+    # Database — Neo4j
+    "neo4j>=5.20,<6",
+    # Cache / broker
+    "redis>=5.0,<6",
+    # Task queue
+    "celery[redis]>=5.4,<6",
+    # Simulation engine
+    "networkx>=3.3,<4",
+    "numpy>=1.26,<3",
+    "scipy>=1.13,<2",
+    # Configuration
+    "pydantic-settings>=2.3,<3",
+    "alembic>=1.13,<2",
+    # Utilities
+    "orjson>=3.10,<4",
+    "shapely>=2.0,<3",
+    "geojson>=3.1,<4",
+]
+
+[project.optional-dependencies]
+osm = [
+    "osmnx>=2.0,<3",
+]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.23,<1",
+    "httpx>=0.27,<1",
+    "ruff>=0.5,<1",
+    "mypy>=1.10,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Pinned explicitly rather than left to ruff's default: that default has
+# changed between ruff minor versions (observed directly — 0.15.8 selects
+# only E4/E7/E9/F, 0.16.7 additionally enables B/BLE/FLY/I/ISC/PIE/PLW/RUF/UP),
+# and pyproject.toml's "ruff>=0.5,<1" always resolves to whatever is latest.
+# An unpinned select would make CI's pass/fail depend on exactly when pip
+# resolved ruff, not on the code. This mirrors flake8's existing scope
+# (pycodestyle errors + pyflakes) rather than adopting the wider stylistic
+# rule families, which would mean reformatting large parts of a codebase
+# that predates ruff being run in CI at all.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Mirrors .flake8's per-file-ignores: test modules import fixtures/mocks
+# before patching sys.modules, so imports can't all sit at the top.
+"tests/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+# Several deps (celery, networkx, osmnx) ship no type stubs.
+ignore_missing_imports = true

@@ -1,0 +1,175 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: ripple-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ripple}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ripple_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-ripple}
+    ports:
+    - 127.0.0.1:5432:5432
+    volumes:
+    - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U ${POSTGRES_USER:-ripple}
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  neo4j:
+    image: neo4j:5.21.0-community
+    container_name: ripple-neo4j
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/ripple_dev_neo4j}
+      NEO4J_PLUGINS: '["graph-data-science"]'
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+    ports:
+    - 127.0.0.1:7474:7474
+    - 127.0.0.1:7687:7687
+    volumes:
+    - neo4jdata:/data
+    - neo4jplugins:/plugins
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:7474 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+  redis:
+    image: redis:7.4-alpine
+    container_name: ripple-redis
+    ports:
+    - 127.0.0.1:6379:6379
+    volumes:
+    - redisdata:/data
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - -a
+      - ${REDIS_PASSWORD:-ripple_dev}
+      - ping
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command:
+    - redis-server
+    - --requirepass
+    - ${REDIS_PASSWORD:-ripple_dev}
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ripple-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+    - 8000:8000
+    volumes:
+    - ./backend:/app
+    - ./data:/data
+    env_file:
+    - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen("http://localhost:8000/health",
+        timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ripple-worker
+    command: 'celery -A app.celery_app worker --loglevel=info --concurrency=2
+
+      '
+    volumes:
+    - ./backend:/app
+    - ./data:/data
+    env_file:
+    - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - celery -A app.celery_app inspect ping -d celery@$$HOSTNAME
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ripple-migrator
+    command: alembic upgrade head
+    volumes:
+    - ./backend:/app
+    env_file:
+    - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+  seeder:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ripple-seeder
+    command: python -m app.services.ingestion
+    volumes:
+    - ./backend:/app
+    - ./data:/data
+    env_file:
+    - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ripple-frontend
+    # Gated behind the "demo" profile so that a plain `docker compose up --build`
+    # is unchanged and port 5173 stays free for the host-based `npm run dev`
+    # workflow documented in the README. `./demo up` enables the profile.
+    profiles:
+    - demo
+    ports:
+    - 5173:5173
+    environment:
+      # Inside the container the API is the `backend` service, not localhost.
+      VITE_API_TARGET: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+volumes:
+  pgdata: null
+  neo4jdata: null
+  neo4jplugins: null
+  redisdata: null
