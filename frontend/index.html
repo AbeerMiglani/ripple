@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ripple — Cascading Failure Simulator</title>
+
+    <!--
+      Fonts are requested from the document rather than through an @import
+      inside a JS-imported stylesheet. The @import was only discovered once the
+      bundle had parsed, so the first paint used a fallback face and then
+      reflowed; the preconnects start the handshake before the CSS is even
+      fetched.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body, #root { width: 100%; height: 100%; }
+      /*
+        Must match --font-family-base in src/styles/tokens.css. This used to
+        declare a different stack, so any text rendered before .rp-root mounted
+        was set in a face the design system never chose.
+      */
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

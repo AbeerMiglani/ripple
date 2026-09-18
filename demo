@@ -1,0 +1,719 @@
+#!/usr/bin/env bash
+#
+# Ripple — one-command local demo runner.
+#
+# A judge needs only Git and Docker. Everything else (the .env file, database
+# migrations, seed ingestion, readiness checks) is handled here.
+#
+#   ./demo up              bring the stack up and verify it is actually ready
+#   ./demo status          report readiness without changing anything
+#   ./demo logs [svc...]   follow logs
+#   ./demo test            run the deterministic scripted demo in-container
+#   ./demo down            stop the stack, keep the data volumes
+#   ./demo reset [-y]      destroy the data volumes, then bring it back up
+#   ./demo help            this text (touches nothing)
+#
+# This wraps the canonical docker-compose.yml. The frontend lives behind the
+# "demo" Compose profile, so the manual workflow in the README
+# (docker compose up --build, then npm run dev on the host) keeps working
+# unchanged and port 5173 stays free for it.
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# --- constants ---------------------------------------------------------------
+
+ENV_FILE=".env"
+ENV_TEMPLATE=".env.example"
+
+FRONTEND_URL="http://localhost:5173"
+DOCS_URL="http://localhost:8000/docs"
+HEALTH_URL="http://localhost:8000/health"
+NEO4J_BROWSER_URL="http://localhost:7474"
+
+BACKEND_PORT=8000
+FRONTEND_PORT=5173
+
+DATASTORES=(postgres neo4j redis)
+APP_SERVICES=(backend worker)
+DATA_VOLUMES=(pgdata neo4jdata neo4jplugins redisdata)
+
+# Bounded-poll budgets in seconds; override any of them via the environment.
+DEMO_BUILD_TIMEOUT="${DEMO_BUILD_TIMEOUT:-900}"
+DEMO_DATASTORE_TIMEOUT="${DEMO_DATASTORE_TIMEOUT:-240}"
+DEMO_MIGRATE_TIMEOUT="${DEMO_MIGRATE_TIMEOUT:-180}"
+DEMO_SEED_TIMEOUT="${DEMO_SEED_TIMEOUT:-300}"
+DEMO_BACKEND_TIMEOUT="${DEMO_BACKEND_TIMEOUT:-120}"
+DEMO_FRONTEND_TIMEOUT="${DEMO_FRONTEND_TIMEOUT:-180}"
+
+# Sub-second poll interval used inside every bounded readiness loop. There are
+# no fixed readiness sleeps in this script.
+POLL_INTERVAL="${DEMO_POLL_INTERVAL:-0.5}"
+
+EX_USAGE=2
+EX_DOCKER=3
+EX_PORT=4
+EX_ENV=5
+EX_MIGRATE=6
+EX_SEED=7
+EX_BACKEND=8
+EX_FRONTEND=9
+
+DEVTCP_OK=0
+
+# --- output helpers ----------------------------------------------------------
+
+if [[ -t 1 ]]; then
+    C_RESET=$'\033[0m'
+    C_BOLD=$'\033[1m'
+    C_DIM=$'\033[2m'
+    C_RED=$'\033[31m'
+    C_GREEN=$'\033[32m'
+    C_YELLOW=$'\033[33m'
+    C_CYAN=$'\033[36m'
+else
+    C_RESET="" C_BOLD="" C_DIM="" C_RED="" C_GREEN="" C_YELLOW="" C_CYAN=""
+fi
+
+log_step() { printf '%s==>%s %s\n' "$C_CYAN$C_BOLD" "$C_RESET" "$*"; }
+log_ok() { printf '  %sok%s   %s\n' "$C_GREEN" "$C_RESET" "$*"; }
+log_info() { printf '  %s-%s    %s\n' "$C_DIM" "$C_RESET" "$*"; }
+log_warn() { printf '  %swarn%s %s\n' "$C_YELLOW" "$C_RESET" "$*" >&2; }
+log_err() { printf '  %sfail%s %s\n' "$C_RED" "$C_RESET" "$*" >&2; }
+
+die() {
+    local code="$1"
+    shift
+    log_err "$*"
+    exit "$code"
+}
+
+hint() { printf '       %s%s%s\n' "$C_DIM" "$*" "$C_RESET" >&2; }
+
+# --- compose wrapper ---------------------------------------------------------
+#
+# Every lifecycle call goes through this one function so the demo profile can
+# never be omitted by accident.
+compose() {
+    docker compose --profile demo "$@"
+}
+
+# compose_bounded <seconds> <args...> — as compose(), but capped by coreutils
+# `timeout` where that exists (it is absent from a stock macOS). `timeout` execs
+# a binary and so cannot call a shell function, which is why the invocation is
+# spelled out again here — the profile flag stays mandatory either way.
+compose_bounded() {
+    local budget="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$budget" docker compose --profile demo "$@"
+    else
+        compose "$@"
+    fi
+}
+
+# --- generic helpers ---------------------------------------------------------
+
+# poll_until <seconds> <label> <predicate...> — bounded readiness polling.
+poll_until() {
+    local budget="$1" label="$2"
+    shift 2
+    local deadline=$((SECONDS + budget))
+    local ticks=0 started=0
+    while true; do
+        if "$@" >/dev/null 2>&1; then
+            if ((started == 1)); then printf '\n'; fi
+            return 0
+        fi
+        if ((SECONDS >= deadline)); then
+            if ((started == 1)); then printf '\n'; fi
+            log_err "timed out after ${budget}s waiting for ${label}"
+            return 1
+        fi
+        if ((started == 0)); then
+            printf '  %s..%s   waiting for %s ' "$C_DIM" "$C_RESET" "$label"
+            started=1
+        fi
+        # one dot per ~2s of waiting, so a long wait stays readable
+        if ((ticks % 4 == 0)); then printf '.'; fi
+        ticks=$((ticks + 1))
+        sleep "$POLL_INTERVAL"
+    done
+}
+
+# Probe whether this bash exposes /dev/tcp. A closed port is a successful
+# probe; only a missing feature disables the TCP checks.
+detect_devtcp() {
+    local err
+    err="$( (exec 3<>/dev/tcp/127.0.0.1/1) 2>&1 || true)"
+    case "$err" in
+    *"No such file or directory"* | *"not supported"* | *"restricted"*)
+        DEVTCP_OK=0
+        ;;
+    *)
+        DEVTCP_OK=1
+        ;;
+    esac
+}
+
+tcp_open() {
+    local port="$1"
+    ((DEVTCP_OK == 1)) || return 1
+    (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null
+}
+
+# http_probe <port> <path> — print something non-empty when the port answers
+# HTTP. Uses curl when present, otherwise a raw request over /dev/tcp, so no
+# host tooling beyond bash is required.
+http_probe() {
+    local port="$1" path="$2"
+    if command -v curl >/dev/null 2>&1; then
+        curl -sS -o /dev/null -w '%{http_code}' --max-time 5 \
+            "http://127.0.0.1:${port}${path}" 2>/dev/null
+        return
+    fi
+    ((DEVTCP_OK == 1)) || return 1
+    (
+        exec 3<>"/dev/tcp/127.0.0.1/${port}" || exit 1
+        printf 'GET %s HTTP/1.0\r\nHost: 127.0.0.1:%s\r\nConnection: close\r\n\r\n' \
+            "$path" "$port" >&3
+        IFS= read -r -t 5 line <&3 || exit 1
+        printf '%s' "$line"
+    ) 2>/dev/null
+}
+
+http_answers() {
+    local out
+    out="$(http_probe "$1" "$2")" || return 1
+    [[ -n "$out" ]]
+}
+
+# --- docker preflight --------------------------------------------------------
+
+require_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        log_err "Docker is not installed (no 'docker' on PATH)."
+        hint "Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
+        exit "$EX_DOCKER"
+    fi
+    if ! docker compose version >/dev/null 2>&1; then
+        log_err "Docker Compose v2 is required."
+        hint "'docker compose version' failed. The legacy 'docker-compose' v1"
+        hint "binary is not enough — update Docker Desktop, or install the"
+        hint "compose v2 CLI plugin."
+        exit "$EX_DOCKER"
+    fi
+    if ! docker info >/dev/null 2>&1; then
+        log_err "Docker is installed but the daemon is not reachable."
+        hint "Start Docker Desktop (or the docker daemon) and run this again."
+        exit "$EX_DOCKER"
+    fi
+}
+
+# --- compose introspection ---------------------------------------------------
+
+service_id() {
+    compose ps -aq "$1" 2>/dev/null | head -n 1
+}
+
+# Docker health status when the service declares a healthcheck, otherwise its
+# plain container state. Resolved through 'compose ps -q' rather than a
+# hardcoded container name.
+service_state() {
+    local id
+    id="$(service_id "$1")"
+    if [[ -z "$id" ]]; then
+        printf 'absent'
+        return
+    fi
+    docker inspect \
+        --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+        "$id" 2>/dev/null || printf 'unknown'
+}
+
+service_exit_code() {
+    local id
+    id="$(service_id "$1")"
+    [[ -n "$id" ]] || return 1
+    docker inspect --format '{{.State.ExitCode}}' "$id" 2>/dev/null
+}
+
+datastores_healthy() {
+    local svc
+    for svc in "${DATASTORES[@]}"; do
+        [[ "$(service_state "$svc")" == "healthy" ]] || return 1
+    done
+}
+
+job_exited() {
+    [[ "$(service_state "$1")" == "exited" ]]
+}
+
+# Ask the backend about itself, using the interpreter already in its image so
+# the host needs neither python nor curl. Exits non-zero unless every declared
+# dependency reports ok.
+backend_health() {
+    compose exec -T backend python - <<'PY'
+import json
+import sys
+import urllib.error
+import urllib.request
+
+URL = "http://127.0.0.1:8000/health"
+
+try:
+    with urllib.request.urlopen(URL, timeout=5) as response:
+        payload = json.load(response)
+except urllib.error.HTTPError as exc:
+    try:
+        payload = json.loads(exc.read().decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+    if isinstance(payload.get("detail"), dict):
+        payload = payload["detail"]
+    payload.setdefault("status", "degraded")
+    print(json.dumps(payload))
+    sys.exit(1)
+except Exception as exc:
+    print(json.dumps({"status": "unreachable", "error": str(exc)}))
+    sys.exit(1)
+
+services = payload.get("services") or {}
+healthy = payload.get("status") == "ok" and bool(services) and all(
+    value == "ok" for value in services.values()
+)
+print(json.dumps(payload))
+sys.exit(0 if healthy else 1)
+PY
+}
+
+backend_port_published() {
+    http_answers "$BACKEND_PORT" "/health"
+}
+
+frontend_serving() {
+    http_answers "$FRONTEND_PORT" "/"
+}
+
+dump_logs() {
+    log_info "last 60 log lines from '$1':"
+    compose logs --no-color --tail=60 "$1" 2>&1 | sed 's/^/       /' >&2 || true
+}
+
+# --- port preflight ----------------------------------------------------------
+
+# A port held by one of our own running containers is fine — that is just an
+# idempotent re-run. A port held by anything else has to be freed.
+port_is_ours() {
+    local svc="$1" state
+    state="$(service_state "$svc")"
+    [[ "$state" == "running" || "$state" == "healthy" || "$state" == "starting" ]]
+}
+
+check_port() {
+    local port="$1" svc="$2" required="$3"
+    tcp_open "$port" || return 0
+    if port_is_ours "$svc"; then
+        log_info "port ${port} already served by this project's '${svc}' container"
+        return 0
+    fi
+    if [[ "$required" == "required" ]]; then
+        log_err "port ${port} is in use by something that is not part of this project."
+        hint "The demo needs ${port} for '${svc}'. Either stop that process, or"
+        hint "run './demo down' if an older Ripple stack is still up."
+        return 1
+    fi
+    log_warn "port ${port} is already in use (needed by '${svc}')"
+    return 0
+}
+
+check_ports() {
+    if ((DEVTCP_OK == 0)); then
+        log_warn "this bash has no /dev/tcp support; skipping the port pre-check"
+        return 0
+    fi
+    local failed=0
+    check_port "$BACKEND_PORT" backend required || failed=1
+    check_port "$FRONTEND_PORT" frontend required || failed=1
+    check_port 5432 postgres optional || true
+    check_port 6379 redis optional || true
+    check_port 7474 neo4j optional || true
+    check_port 7687 neo4j optional || true
+    ((failed == 0)) || exit "$EX_PORT"
+    log_ok "required ports are available"
+}
+
+# --- .env -------------------------------------------------------------------
+
+ensure_env() {
+    if [[ ! -f "$ENV_FILE" ]]; then
+        if [[ ! -f "$ENV_TEMPLATE" ]]; then
+            log_err "neither ${ENV_FILE} nor ${ENV_TEMPLATE} is present."
+            hint "Run this from a complete checkout of the repository."
+            exit "$EX_ENV"
+        fi
+        cp "$ENV_TEMPLATE" "$ENV_FILE"
+        log_ok "created ${ENV_FILE} from ${ENV_TEMPLATE}"
+        log_info "those are development/demo credentials only, and ${ENV_FILE} is git-ignored"
+    else
+        log_ok "using the existing ${ENV_FILE} (left untouched)"
+    fi
+}
+
+# --- one-shot jobs ----------------------------------------------------------
+
+# run_job <service> <budget> — start a one-shot Compose service and return its
+# real exit code. The previous container is removed first so a stale exit
+# status from an earlier run can never be mistaken for this one.
+run_job() {
+    local svc="$1" budget="$2"
+    compose rm -fs "$svc" >/dev/null 2>&1 || true
+    compose up -d "$svc" >/dev/null
+    poll_until "$budget" "'${svc}' to finish" job_exited "$svc" || return 1
+    local code
+    code="$(service_exit_code "$svc" || true)"
+    [[ -n "$code" ]] || code=1
+    return "$code"
+}
+
+# --- commands ---------------------------------------------------------------
+
+cmd_help() {
+    cat <<'USAGE'
+Ripple — one-command local demo runner
+
+Usage: ./demo <command> [args]
+
+Commands:
+  up                 Build and start the demo stack, then verify it is ready.
+                     Creates .env from .env.example on first run, applies
+                     database migrations, ingests the checked-in seed data,
+                     and prints the URL to open.
+  status             Report stack readiness and the local URLs. Exits 0 only
+                     when the demo is actually usable. Changes nothing.
+  logs [service...]  Follow logs for the whole stack, or for named services
+                     (e.g. ./demo logs backend frontend).
+  test               Run the deterministic scripted demo inside the backend
+                     container. Needs no host Python.
+  down               Stop and remove the containers. Data volumes are KEPT,
+                     so the next './demo up' is fast.
+  reset [-y|--yes]   Destructive. Delete the local Postgres, Neo4j and Redis
+                     data volumes, then run the full 'up' flow again. Prompts
+                     for confirmation on a terminal; needs -y otherwise.
+  help, --help, -h   Show this text. Does not touch Docker.
+
+Requirements: Git and Docker Desktop with Docker Compose v2. Nothing else.
+
+After './demo up', open http://localhost:5173
+
+Timeout budgets (seconds) can be overridden in the environment:
+  DEMO_BUILD_TIMEOUT DEMO_DATASTORE_TIMEOUT DEMO_MIGRATE_TIMEOUT
+  DEMO_SEED_TIMEOUT DEMO_BACKEND_TIMEOUT DEMO_FRONTEND_TIMEOUT
+USAGE
+}
+
+cmd_up() {
+    log_step "Checking Docker"
+    require_docker
+    log_ok "docker, compose v2 and the daemon are available"
+
+    log_step "Checking ports"
+    detect_devtcp
+    check_ports
+
+    log_step "Preparing environment file"
+    ensure_env
+
+    log_step "Building images (budget ${DEMO_BUILD_TIMEOUT}s)"
+    local build_status=0
+    compose_bounded "$DEMO_BUILD_TIMEOUT" build || build_status=$?
+    if ((build_status != 0)); then
+        if ((build_status == 124)); then
+            log_err "image build exceeded the ${DEMO_BUILD_TIMEOUT}s budget."
+            hint "Raise it with DEMO_BUILD_TIMEOUT if this host is just slow."
+        else
+            log_err "image build failed."
+            hint "If the output mentions failing layer downloads, this host"
+            hint "cannot reach the container registry — check network/proxy access."
+        fi
+        exit 1
+    fi
+    log_ok "images built"
+
+    log_step "Starting datastores"
+    compose up -d "${DATASTORES[@]}" >/dev/null
+    if ! poll_until "$DEMO_DATASTORE_TIMEOUT" "postgres, neo4j and redis to become healthy" \
+        datastores_healthy; then
+        local svc
+        for svc in "${DATASTORES[@]}"; do
+            log_info "${svc}: $(service_state "$svc")"
+            [[ "$(service_state "$svc")" == "healthy" ]] || dump_logs "$svc"
+        done
+        hint "Neo4j is the slow one on a cold start: it allocates its heap and"
+        hint "downloads the graph-data-science plugin on first boot. Raise the"
+        hint "budget with DEMO_DATASTORE_TIMEOUT if the host is slow."
+        exit 1
+    fi
+    log_ok "postgres, neo4j and redis are healthy"
+
+    log_step "Applying database migrations"
+    if ! run_job migrator "$DEMO_MIGRATE_TIMEOUT"; then
+        dump_logs migrator
+        log_err "migrations did not complete."
+        hint "For a throwaway local database, './demo reset' gives a clean one."
+        hint "If the log shows multiple Alembic heads on a database you want to"
+        hint "keep, apply the one-time repair in the README's Quick Start"
+        hint "(the 'Upgrading an existing database?' note under step 2)."
+        exit "$EX_MIGRATE"
+    fi
+    log_ok "migrations are at head"
+
+    log_step "Ingesting seed data"
+    if ! run_job seeder "$DEMO_SEED_TIMEOUT"; then
+        dump_logs seeder
+        die "$EX_SEED" "seed ingestion did not complete."
+    fi
+    log_ok "seed data ingested (re-runs are a no-op; data/seed is never rewritten)"
+
+    log_step "Starting backend and worker"
+    compose up -d "${APP_SERVICES[@]}" >/dev/null
+    if ! poll_until "$DEMO_BACKEND_TIMEOUT" "the backend to report healthy" backend_health; then
+        log_info "last /health payload: $(backend_health 2>/dev/null || true)"
+        dump_logs backend
+        hint "The API refuses to start while postgres, neo4j or redis is"
+        hint "unreachable — check the payload above for the failing one."
+        exit "$EX_BACKEND"
+    fi
+    log_ok "backend /health: $(backend_health 2>/dev/null || true)"
+
+    if ! poll_until 30 "the published backend port ${BACKEND_PORT}" backend_port_published; then
+        log_err "the backend is healthy inside Docker but port ${BACKEND_PORT} is not reachable from this host."
+        hint "Something is interfering with Docker port publishing."
+        exit "$EX_BACKEND"
+    fi
+    log_ok "port ${BACKEND_PORT} is reachable from the host"
+
+    log_step "Starting frontend"
+    compose up -d frontend >/dev/null
+    if ! poll_until "$DEMO_FRONTEND_TIMEOUT" "the frontend dev server on ${FRONTEND_PORT}" \
+        frontend_serving; then
+        dump_logs frontend
+        exit "$EX_FRONTEND"
+    fi
+    log_ok "frontend is serving"
+
+    print_banner
+}
+
+print_banner() {
+    local neo4j_auth="neo4j/ripple_dev_neo4j"
+    if [[ -f "$ENV_FILE" ]]; then
+        neo4j_auth="$(sed -n 's/^NEO4J_AUTH=//p' "$ENV_FILE" | head -n 1)"
+        [[ -n "$neo4j_auth" ]] || neo4j_auth="neo4j/ripple_dev_neo4j"
+    fi
+    printf '\n%sRipple is ready.%s\n\n' "$C_GREEN$C_BOLD" "$C_RESET"
+    printf '  Open the demo    %s%s%s\n' "$C_BOLD" "$FRONTEND_URL" "$C_RESET"
+    printf '  API docs         %s\n' "$DOCS_URL"
+    printf '  Backend health   %s\n' "$HEALTH_URL"
+    printf '  Neo4j Browser    %s  (%s — development credentials)\n' \
+        "$NEO4J_BROWSER_URL" "$neo4j_auth"
+    printf '\n  %sNext:%s\n' "$C_BOLD" "$C_RESET"
+    printf '    ./demo test     run the scripted cascade + intervention walkthrough\n'
+    printf '    ./demo status   re-check readiness\n'
+    printf '    ./demo logs     follow logs (optionally: ./demo logs backend)\n'
+    printf '    ./demo down     stop everything, keep the data\n\n'
+}
+
+cmd_down() {
+    require_docker
+    log_step "Stopping the stack (data volumes are preserved)"
+    compose down --remove-orphans
+    log_ok "stopped. Data is still there — './demo up' will be quick."
+    log_info "to wipe the local databases as well, use './demo reset'"
+}
+
+cmd_reset() {
+    local assume_yes=0
+    while (($# > 0)); do
+        case "$1" in
+        -y | --yes) assume_yes=1 ;;
+        *) die "$EX_USAGE" "unknown option for reset: $1" ;;
+        esac
+        shift
+    done
+
+    require_docker
+
+    printf '%sThis will permanently delete the local demo databases.%s\n' \
+        "$C_YELLOW$C_BOLD" "$C_RESET"
+    printf 'The following Docker volumes will be removed:\n'
+    local vol
+    for vol in "${DATA_VOLUMES[@]}"; do
+        printf '  - %s\n' "$vol"
+    done
+    printf 'That is the Postgres data, the Neo4j graph and plugins, and the Redis data.\n'
+    printf 'Nothing in your working tree is touched: data/seed is read-only here and\n'
+    printf 'is re-ingested from the checked-in fixtures afterwards.\n\n'
+
+    if ((assume_yes == 0)); then
+        if [[ -t 0 ]]; then
+            local answer=""
+            read -r -p "Delete these volumes and rebuild the demo? [y/N] " answer
+            case "$answer" in
+            y | Y | yes | YES) ;;
+            *) die 1 "aborted; nothing was deleted." ;;
+            esac
+        else
+            log_err "refusing to delete volumes without confirmation."
+            hint "Re-run as './demo reset --yes' for non-interactive use."
+            exit 1
+        fi
+    fi
+
+    log_step "Removing containers and data volumes"
+    compose down -v --remove-orphans
+    log_ok "volumes removed"
+
+    cmd_up
+}
+
+cmd_logs() {
+    require_docker
+    compose logs -f --tail=200 "$@"
+}
+
+cmd_status() {
+    require_docker
+    detect_devtcp
+
+    log_step "Compose services"
+    compose ps || true
+
+    printf '\n'
+    log_step "Datastores"
+    local svc state ready=1
+    for svc in "${DATASTORES[@]}"; do
+        state="$(service_state "$svc")"
+        if [[ "$state" == "healthy" ]]; then
+            log_ok "${svc}: ${state}"
+        else
+            log_err "${svc}: ${state}"
+            ready=0
+        fi
+    done
+
+    printf '\n'
+    log_step "One-shot jobs"
+    for svc in migrator seeder; do
+        state="$(service_state "$svc")"
+        if [[ "$state" == "absent" ]]; then
+            log_warn "${svc}: never run"
+            ready=0
+        elif [[ "$state" == "exited" ]]; then
+            local code
+            code="$(service_exit_code "$svc" || echo "?")"
+            if [[ "$code" == "0" ]]; then
+                log_ok "${svc}: completed (exit 0)"
+            else
+                log_err "${svc}: failed (exit ${code})"
+                ready=0
+            fi
+        else
+            log_info "${svc}: ${state}"
+        fi
+    done
+
+    printf '\n'
+    log_step "Application"
+    local payload
+    if payload="$(backend_health 2>/dev/null)"; then
+        log_ok "backend /health: ${payload}"
+    else
+        log_err "backend /health: ${payload:-unreachable}"
+        ready=0
+    fi
+    if backend_port_published; then
+        log_ok "host port ${BACKEND_PORT} answers"
+    else
+        log_err "host port ${BACKEND_PORT} does not answer"
+        ready=0
+    fi
+    if frontend_serving; then
+        log_ok "host port ${FRONTEND_PORT} answers"
+    else
+        log_err "host port ${FRONTEND_PORT} does not answer"
+        ready=0
+    fi
+
+    printf '\n'
+    log_step "URLs"
+    printf '  frontend  %s\n' "$FRONTEND_URL"
+    printf '  api docs  %s\n' "$DOCS_URL"
+    printf '  health    %s\n' "$HEALTH_URL"
+    printf '  neo4j     %s\n' "$NEO4J_BROWSER_URL"
+
+    printf '\n'
+    if ((ready == 1)); then
+        log_ok "the demo is ready"
+        return 0
+    fi
+    log_err "the demo is not ready — try './demo up'"
+    return 1
+}
+
+cmd_test() {
+    require_docker
+    detect_devtcp
+
+    log_step "Verifying the stack is ready"
+    if ! poll_until "$DEMO_BACKEND_TIMEOUT" "the backend to report healthy" backend_health; then
+        log_err "the backend is not ready."
+        hint "Run './demo up' first, or './demo status' to see what is wrong."
+        exit "$EX_BACKEND"
+    fi
+    log_ok "backend is healthy"
+
+    log_step "Running the scripted demo inside the backend container"
+    log_info "data/scripts/demo_scenario.py, reached through the ./data:/data mount"
+    compose exec -T backend python /data/scripts/demo_scenario.py
+}
+
+# --- dispatch ---------------------------------------------------------------
+
+main() {
+    local command="${1:-help}"
+    if (($# > 0)); then shift; fi
+
+    case "$command" in
+    up)
+        cmd_up "$@"
+        ;;
+    down)
+        cmd_down "$@"
+        ;;
+    reset)
+        cmd_reset "$@"
+        ;;
+    logs)
+        cmd_logs "$@"
+        ;;
+    status)
+        cmd_status "$@"
+        ;;
+    test)
+        cmd_test "$@"
+        ;;
+    help | --help | -h)
+        cmd_help
+        ;;
+    *)
+        printf 'demo: unknown command %s\n\n' "'$command'" >&2
+        cmd_help >&2
+        exit "$EX_USAGE"
+        ;;
+    esac
+}
+
+main "$@"

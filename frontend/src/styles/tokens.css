@@ -1,0 +1,312 @@
+/**
+ * Ripple design tokens — dark "blueprint" aesthetic.
+ *
+ * Adapted from the Claude Design mockup (project ffd7d824-92a0-487c-be5d-
+ * afeb307d855f, "Ripple Dashboard.dc.html"), which itself overrides the
+ * "Industry" design system's tokens with these values. Square corners,
+ * hairline borders, condensed-caps headings — a blueprint/wireframe look
+ * chosen to keep every number reading as a measurement, not a decoration.
+ *
+ * Plain CSS custom properties + a handful of utility classes: no build step,
+ * no CSS-in-JS dependency. Components may still use inline styles for
+ * per-instance values (e.g. computed colors) — these tokens are the shared
+ * vocabulary those inline styles pull from via var(--token).
+ */
+
+/*
+ * The webfont is requested from index.html, not with an @import here: an
+ * @import inside a stylesheet that is itself imported from JS is not
+ * discovered until the bundle parses, which cost a flash of fallback text on
+ * every load.
+ */
+
+:root {
+  /* Ground */
+  --rp-bg: #0b0f14;
+  --rp-surface: #0f1419;
+  --rp-surface-2: #151c23;
+  --rp-surface-3: #11171d;
+  --rp-text: #e6edf3;
+  --rp-text-dim: #c6d4e1;
+
+  /* Accents */
+  --rp-accent: #94bce3;
+  --rp-accent-soft: #c2dcf3;
+  --rp-teal: #5cb2a6;
+  --rp-teal-bright: #7fd0a8;
+  --rp-ok: #4fae83;
+
+  /* Wave severity (0, 1, 2 — matches the backend's wave index) */
+  --rp-wave-0: #f04438;
+  --rp-wave-1: #ee7c46;
+  --rp-wave-2: #e3a33f;
+  --rp-error-soft: #ff9a92;
+  --rp-warn-soft: #f0c98a;
+
+  /* Muted text tiers */
+  --rp-mute: #8ea3b8;
+  --rp-dim: #93a7ba;
+  --rp-faint: #7d90a3;
+
+  --rp-divider: rgba(148, 188, 227, 0.18);
+  --rp-divider-strong: rgba(148, 188, 227, 0.3);
+
+  /*
+   * Typography. One family across headings, body and tabular figures: the
+   * previous pairing of a condensed face for headings with a separate body
+   * face made each panel read as its own document.
+   *
+   * --font-family-base is the canonical token. --rp-font-heading and
+   * --rp-font-body are retained as aliases so the existing var(--rp-font-*)
+   * call sites throughout the components keep working unchanged.
+   */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --rp-font-heading: var(--font-family-base);
+  --rp-font-body: var(--font-family-base);
+  /* Monospace was hardcoded at two call sites; it is a token now. */
+  --rp-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale — every size in the app was previously a bare literal. */
+  --rp-text-xs: 10.5px;
+  --rp-text-sm: 11.5px;
+  --rp-text-md: 12.5px;
+  --rp-text-lg: 14px;
+  --rp-text-xl: 18px;
+  --rp-text-2xl: 27px;
+
+  --rp-space-1: 4px;
+  --rp-space-2: 8px;
+  --rp-space-3: 12px;
+  --rp-space-4: 16px;
+  --rp-space-6: 24px;
+
+  --rp-radius: 0px; /* blueprint components are square-cornered by design */
+}
+
+.rp-root {
+  font-family: var(--rp-font-body);
+  color: var(--rp-text);
+  background: var(--rp-bg);
+}
+
+.rp-root h1,
+.rp-root h2,
+.rp-root h3,
+.rp-root h4,
+.rp-root h5,
+.rp-root h6 {
+  font-family: var(--rp-font-heading);
+  font-weight: 600;
+  /* Inter is a normal-width face where the previous heading font was
+     condensed, so headings are tracked in slightly to keep the same density. */
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* Figures the user compares column to column must not jitter as they animate. */
+.rp-root .rp-num,
+.rp-root table {
+  font-family: var(--font-family-base);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* — blueprint frame: a square, hairline-bordered wrapper with corner ticks — */
+.rp-blueprint {
+  position: relative;
+  border: 1px solid var(--rp-divider);
+}
+.rp-blueprint > .rp-corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  color: rgba(148, 188, 227, 0.45);
+  pointer-events: none;
+}
+.rp-blueprint > .rp-corner::before,
+.rp-blueprint > .rp-corner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.rp-blueprint > .rp-corner::before {
+  left: 5px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+.rp-blueprint > .rp-corner::after {
+  top: 5px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+.rp-blueprint > .rp-corner.tl {
+  top: -6px;
+  left: -6px;
+}
+.rp-blueprint > .rp-corner.tr {
+  top: -6px;
+  right: -6px;
+}
+.rp-blueprint > .rp-corner.bl {
+  bottom: -6px;
+  left: -6px;
+}
+.rp-blueprint > .rp-corner.br {
+  bottom: -6px;
+  right: -6px;
+}
+
+/* — buttons — */
+.rp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: var(--rp-font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  padding: 6px 12px;
+  border-radius: var(--rp-radius);
+  border: 1px solid var(--rp-divider);
+  background: transparent;
+  color: var(--rp-accent-soft);
+}
+.rp-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.rp-btn-primary {
+  background: var(--rp-accent);
+  border-color: var(--rp-accent);
+  color: #0b0f14;
+}
+.rp-btn-primary:hover:not(:disabled) {
+  background: #a9cbec;
+}
+.rp-btn-danger {
+  background: var(--rp-wave-0);
+  border-color: var(--rp-wave-0);
+  color: #0b0f14;
+}
+.rp-btn-danger:hover:not(:disabled) {
+  background: #f26a60;
+}
+.rp-btn-secondary {
+  border-color: var(--rp-divider-strong);
+  color: var(--rp-accent-soft);
+  background: transparent;
+}
+.rp-btn-secondary:hover:not(:disabled) {
+  background: rgba(148, 188, 227, 0.08);
+}
+.rp-btn-ghost {
+  border-color: transparent;
+  color: var(--rp-mute);
+  background: transparent;
+}
+.rp-btn-ghost:hover:not(:disabled) {
+  background: rgba(148, 188, 227, 0.06);
+}
+
+/* — provenance / status tags — */
+.rp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.rp-tag-simulated {
+  color: var(--rp-accent);
+  border: 1px solid rgba(148, 188, 227, 0.45);
+}
+.rp-tag-estimated {
+  color: var(--rp-wave-2);
+  border: 1px solid rgba(227, 163, 63, 0.45);
+}
+.rp-tag-derived {
+  color: #c58fc4;
+  border: 1px solid rgba(197, 143, 196, 0.45);
+}
+.rp-tag-verified {
+  color: var(--rp-teal-bright);
+  border: 1px solid rgba(79, 174, 131, 0.5);
+}
+.rp-tag-muted {
+  color: var(--rp-mute);
+  border: 1px solid var(--rp-divider);
+}
+
+/* — collapsible section header, used by every sidebar panel — */
+.rp-section-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--rp-font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--rp-text);
+}
+.rp-section-header:hover {
+  background: var(--rp-surface-3);
+}
+.rp-section-state {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rp-dim);
+  font-family: var(--rp-font-body);
+  font-weight: 500;
+}
+
+/* — skeleton shimmer for loading numerals — */
+@keyframes rp-skel {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+.rp-skel {
+  animation: rp-skel 1.2s ease-in-out infinite;
+}
+
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.rp-spin {
+  animation: rp-spin 1s linear infinite;
+}
+
+@keyframes rp-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}

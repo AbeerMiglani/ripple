@@ -1,0 +1,11 @@
+[flake8]
+max-line-length = 100
+extend-ignore = E203, W503, E501, W291, W293, E301, E302, E303, W391, E261
+per-file-ignores =
+    tests/*: E402
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    .venv,
+    alembic/versions
