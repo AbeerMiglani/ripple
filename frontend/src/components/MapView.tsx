@@ -28,6 +28,7 @@ import { EmptyMapState, LoadingMapState, ErrorMapState } from "./shared/MapState
 import Banner from "./shared/Banner";
 import { useNodeLookup } from "../hooks/useNodeLookup";
 import { BASEMAP_MAX_BOUNDS, basemapStyle } from "../map/basemapStyle";
+import { mapEdgesToDraw, mapNodesToDraw } from "../map/roadVisibility";
 
 interface MapViewProps {
   nodes: InfraNode[];
@@ -123,7 +124,9 @@ export default function MapView({ nodes, edges }: MapViewProps) {
   const isRunning = useSimulationStore((s) => s.isRunning);
   const runError = useSimulationStore((s) => s.runError);
 
-  const [showRoads, setShowRoads] = useState(true);
+  // Off by default: the seed road grid is synthetic and does not follow the
+  // real streets on the basemap. See src/map/roadVisibility.ts.
+  const [showRoads, setShowRoads] = useState(false);
   const [layersOpen, setLayersOpen] = useState(false);
 
   /**
@@ -172,21 +175,20 @@ export default function MapView({ nodes, edges }: MapViewProps) {
 
   const visibleEdgeTypes = useMemo(() => new Set(edges.map((e) => e.edge_type)), [edges]);
 
-  // What is drawn, independent of the cascade state. Memoized separately from
-  // updateLayers because that callback re-runs on every pulse-animation frame
-  // while anything is failed; rebuilding the edge rows there re-filtered and
-  // re-allocated the full edge list 60 times a second for data that only
-  // changes with the topology or the roads toggle.
-  const visibleNodes = useMemo(
-    () => (showRoads ? nodes : nodes.filter((n) => n.node_type !== "road_junction")),
-    [nodes, showRoads]
+  // Junctions that are part of what is on screen stay drawn with roads
+  // hidden: failed, restored or saved ones, and the user's picks.
+  const pinnedIds = useMemo(
+    () => new Set([...failedNodeIds, ...restoredNodeIds, ...savedNodeIds, ...selectedNodeIds, ...redundancyNodes]),
+    [failedNodeIds, restoredNodeIds, savedNodeIds, selectedNodeIds, redundancyNodes]
   );
+
+  // What is drawn. Memoized separately from updateLayers because that callback
+  // re-runs on every pulse-animation frame while anything is failed; these
+  // change only with the topology, the roads toggle, or a new wave/selection.
+  const visibleNodes = useMemo(() => mapNodesToDraw(nodes, showRoads, pinnedIds), [nodes, showRoads, pinnedIds]);
   const edgeData = useMemo(() => {
-    const visibleIds = new Set(visibleNodes.map((n) => n.id));
     const rows: EdgeRow[] = [];
-    for (const e of edges) {
-      if (!showRoads && e.edge_type === "road_link") continue;
-      if (!visibleIds.has(e.source_id) || !visibleIds.has(e.target_id)) continue;
+    for (const e of mapEdgesToDraw(edges, visibleNodes, showRoads)) {
       const src = nodeById.get(e.source_id);
       const tgt = nodeById.get(e.target_id);
       if (!src || !tgt) continue;
@@ -194,6 +196,9 @@ export default function MapView({ nodes, edges }: MapViewProps) {
     }
     return rows;
   }, [edges, visibleNodes, nodeById, showRoads]);
+  const roadJunctionCount = useMemo(() => nodes.filter((n) => n.node_type === "road_junction").length, [nodes]);
+  const hiddenJunctionCount =
+    roadJunctionCount - visibleNodes.filter((n) => n.node_type === "road_junction").length;
 
   // Update deck.gl layers when state changes
   const updateLayers = useCallback(() => {
@@ -456,12 +461,15 @@ export default function MapView({ nodes, edges }: MapViewProps) {
         </button>
         {layersOpen && (
           <label
+            title="The seed road network is synthetic and does not follow the real streets on the map, so healthy junctions are hidden by default. Junctions that fail or that you select are always shown."
             style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 6px", cursor: "pointer", borderTop: "1px solid var(--rp-divider)" }}
           >
             <input type="checkbox" checked={showRoads} onChange={(e) => setShowRoads(e.target.checked)} style={{ accentColor: "var(--rp-accent)" }} />
             <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <span style={{ fontSize: 11.5, color: "var(--rp-text)" }}>Road junctions</span>
-              <span style={{ fontSize: 10, color: "var(--rp-dim)" }}>{nodes.filter((n) => n.node_type === "road_junction").length} nodes</span>
+              <span style={{ fontSize: 10, color: "var(--rp-dim)" }}>
+                {showRoads ? `${roadJunctionCount} nodes · synthetic layout` : `${hiddenJunctionCount} hidden · failures still shown`}
+              </span>
             </span>
           </label>
         )}
