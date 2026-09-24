@@ -45,17 +45,6 @@ class _FakeWebSocket:
         self.sent.append(text)
 
 
-class _NullSessionCM:
-    """Stands in for `with SessionLocal() as db:` when the test patches
-    _current_status directly and the db value itself is never inspected."""
-
-    def __enter__(self):
-        return None
-
-    def __exit__(self, *_exc):
-        return False
-
-
 class _FakePubSub:
     def __init__(self, messages=None):
         self._messages = list(messages or [])
@@ -100,12 +89,34 @@ def _session_factory(db):
 # ---------------------------------------------------------------------------
 
 
-def test_current_status_reads_the_status_column():
-    assert _current_status(_db_returning(("completed",)), uuid.uuid4()) == "completed"
+def test_current_status_reads_the_status_column(monkeypatch):
+    monkeypatch.setattr("app.api.ws.SessionLocal", _session_factory(_db_returning(("completed",))))
+    assert _current_status(uuid.uuid4()) == "completed"
 
 
-def test_current_status_none_when_simulation_missing():
-    assert _current_status(_db_returning(None), uuid.uuid4()) is None
+def test_current_status_none_when_simulation_missing(monkeypatch):
+    monkeypatch.setattr("app.api.ws.SessionLocal", _session_factory(_db_returning(None)))
+    assert _current_status(uuid.uuid4()) is None
+
+
+async def test_status_lookups_run_off_the_event_loop(monkeypatch):
+    """The lookup is a blocking DB round trip; on the loop thread it would
+    stall every other request and socket this process is serving."""
+    import threading
+
+    loop_thread = threading.get_ident()
+    seen: list[int] = []
+
+    def lookup(_sid):
+        seen.append(threading.get_ident())
+        return "completed"
+
+    monkeypatch.setattr("app.api.ws.websocket_principal", MagicMock())
+    monkeypatch.setattr("app.api.ws._current_status", lookup)
+
+    await simulation_websocket(_FakeWebSocket(), str(uuid.uuid4()))
+
+    assert seen and all(tid != loop_thread for tid in seen)
 
 
 # ---------------------------------------------------------------------------
@@ -159,8 +170,7 @@ async def test_idle_poll_falls_back_to_the_row_when_pubsub_stays_silent(monkeypa
     without waiting for the full wait budget."""
     monkeypatch.setattr("app.api.ws.websocket_principal", MagicMock())
     statuses = iter(["running", "running", "completed"])
-    monkeypatch.setattr("app.api.ws._current_status", lambda _db, _sid: next(statuses))
-    monkeypatch.setattr("app.api.ws.SessionLocal", lambda: _NullSessionCM())
+    monkeypatch.setattr("app.api.ws._current_status", lambda _sid: next(statuses))
     fake_pubsub = _FakePubSub(messages=[])  # never publishes
     monkeypatch.setattr("app.api.ws.get_async_redis_client", lambda: _FakeAsyncRedis(fake_pubsub))
 

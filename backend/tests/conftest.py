@@ -136,6 +136,7 @@ LEAN_SETTINGS_DEFAULTS: dict = {
     "max_initial_failures": 25,
     "max_scenario_modifications": 20,
     "centrality_cache_ttl_seconds": 300,
+    "recommendation_cache_ttl_seconds": 3600,
     "max_cascade_waves": 50,
     "enforce_edge_semantics": True,
     "topology_source": "synthetic",

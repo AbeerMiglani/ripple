@@ -43,6 +43,39 @@ const STORY_HIGHLIGHT = (active: boolean): React.CSSProperties => ({
   transition: "border-color 200ms ease",
 });
 
+/**
+ * Full-screen state shown until a network topology is on screen.
+ *
+ * Used to be a single "Loading infrastructure data…" line for every case, so a
+ * backend that was down, or a database nobody had seeded, looked exactly like
+ * a slow load and never resolved.
+ */
+function StartupState({
+  title,
+  detail,
+  onRetry,
+}: {
+  title: string;
+  detail?: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <div
+      className="rp-root"
+      role={onRetry ? "alert" : "status"}
+      style={{ display: "flex", flexDirection: "column", gap: 10, height: "100vh", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}
+    >
+      <p style={{ margin: 0, fontSize: 16, color: onRetry ? "var(--rp-text)" : "var(--rp-mute)" }}>{title}</p>
+      {detail && <p style={{ margin: 0, maxWidth: 520, fontSize: 13, lineHeight: 1.5, color: "var(--rp-mute)" }}>{detail}</p>}
+      {onRetry && (
+        <button className="rp-btn rp-btn-secondary" onClick={onRetry}>
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
 function timeNow() {
   return new Date().toLocaleTimeString([], { hour12: false });
 }
@@ -91,7 +124,11 @@ function useEventLog(): LogEntry[] {
 }
 
 const App: React.FC = () => {
-  const { data: networks, isLoading: isLoadingNetworks } = useNetworks();
+  const {
+    data: networks,
+    error: networksError,
+    refetch: refetchNetworks,
+  } = useNetworks();
   const networkId = useUIStore((s) => s.networkId);
   const setNetworkId = useUIStore((s) => s.setNetworkId);
 
@@ -101,7 +138,11 @@ const App: React.FC = () => {
     }
   }, [networks, networkId, setNetworkId]);
 
-  const { data: topology, isLoading: isLoadingTopology } = useNetworkTopology(networkId);
+  const {
+    data: topology,
+    error: topologyError,
+    refetch: refetchTopology,
+  } = useNetworkTopology(networkId);
   const currentNetwork = useMemo(() => networks?.find((n) => n.id === networkId), [networks, networkId]);
 
   const result = useSimulationStore((s) => s.result);
@@ -131,12 +172,35 @@ const App: React.FC = () => {
     sidebarRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [demoPhase, isDemoRunning]);
 
-  if (isLoadingNetworks || isLoadingTopology || !topology) {
+  if (networksError) {
     return (
-      <div className="rp-root" style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ fontSize: 16, color: "var(--rp-mute)" }}>Loading infrastructure data…</p>
-      </div>
+      <StartupState
+        title="Could not reach the Ripple API"
+        detail={`${networksError.message}. Check that the backend is running (./demo status), then retry.`}
+        onRetry={() => void refetchNetworks()}
+      />
     );
+  }
+  if (networks && networks.length === 0) {
+    return (
+      <StartupState
+        title="No infrastructure networks yet"
+        detail="The database is reachable but empty. Run the seeder (./demo up, or docker compose run --rm seeder), then retry."
+        onRetry={() => void refetchNetworks()}
+      />
+    );
+  }
+  if (topologyError) {
+    return (
+      <StartupState
+        title="Could not load this network"
+        detail={topologyError.message}
+        onRetry={() => void refetchTopology()}
+      />
+    );
+  }
+  if (!topology) {
+    return <StartupState title="Loading infrastructure data…" />;
   }
 
   return (

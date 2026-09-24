@@ -2,7 +2,7 @@ import json
 import uuid
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.db.postgres import SessionLocal
 from app.db.redis import get_async_redis_client
@@ -20,9 +20,21 @@ _MAX_WAIT_SECONDS = 150
 _POLL_TIMEOUT_SECONDS = 1.0
 
 
-def _current_status(db: Session, simulation_uuid: uuid.UUID) -> str | None:
-    row = db.query(SimulationResult.status).filter(SimulationResult.id == simulation_uuid).first()
+def _current_status(simulation_uuid: uuid.UUID) -> str | None:
+    """The run's durable status, or None when it does not exist.
+
+    A blocking SQLAlchemy round trip: callers in this async module must go
+    through ``_status`` so the query runs on a worker thread. Called inline it
+    stalled the event loop -- and with it every other request and socket this
+    process serves -- once per second for every open connection.
+    """
+    with SessionLocal() as db:
+        row = db.query(SimulationResult.status).filter(SimulationResult.id == simulation_uuid).first()
     return row[0] if row else None
+
+
+async def _status(simulation_uuid: uuid.UUID) -> str | None:
+    return await run_in_threadpool(_current_status, simulation_uuid)
 
 
 @router.websocket("/ws/simulations/{sim_id}")
@@ -38,8 +50,7 @@ async def simulation_websocket(websocket: WebSocket, sim_id: str):
         await websocket.close(code=1008, reason="Unauthorized")
         return
 
-    with SessionLocal() as db:
-        status = _current_status(db, simulation_uuid)
+    status = await _status(simulation_uuid)
     if status is None:
         await websocket.close(code=1008, reason="Simulation not found")
         return
@@ -77,8 +88,7 @@ async def simulation_websocket(websocket: WebSocket, sim_id: str):
             # still caught within about a second, rather than left hanging
             # for the rest of the wait budget.
             elapsed += _POLL_TIMEOUT_SECONDS
-            with SessionLocal() as db:
-                current = _current_status(db, simulation_uuid)
+            current = await _status(simulation_uuid)
             if current in {"completed", "failed"}:
                 await websocket.send_text(json.dumps({"status": current}))
                 return

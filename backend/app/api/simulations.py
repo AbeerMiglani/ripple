@@ -10,7 +10,8 @@ from app.db.postgres import get_db
 from app.models.network import Network, Node, Scenario, SimulationResult
 from app.schemas.simulation import SimulationCreate, SimulationResponse, WaveSchema
 from app.security import enforce_rate_limit, require_operator, require_viewer
-from app.services.recommendations import MitigationRecommendation, get_recommendations
+from app.services.recommendation_cache import MAX_RECOMMENDATIONS, cached_recommendations
+from app.services.recommendations import MitigationRecommendation
 from app.simulation.runner import run_simulation_task
 
 #: Re-exported: these were declared inline here and had already drifted from
@@ -119,7 +120,7 @@ def get_simulation(sim_id: uuid.UUID, db: Session = Depends(get_db)):
 )
 def get_simulation_recommendations(
     sim_id: uuid.UUID,
-    limit: int = Query(default=10, ge=1, le=50, description="Max recommendations to return"),
+    limit: int = Query(default=10, ge=1, le=MAX_RECOMMENDATIONS, description="Max recommendations to return"),
     db: Session = Depends(get_db),
 ):
     """Fetch mitigation recommendations for a completed simulation."""
@@ -133,4 +134,4 @@ def get_simulation_recommendations(
             detail=f"Simulation status is '{sim.status}'. Recommendations are only available for completed simulations.",
         )
 
-    return get_recommendations(simulation=sim, db=db, limit=limit)
+    return cached_recommendations(simulation=sim, db=db, limit=limit)
