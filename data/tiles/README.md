@@ -1,44 +1,63 @@
-# Ripple basemap tiles
+# Ripple basemap
 
-`manipal.pmtiles` is the self-hosted vector basemap the frontend renders via
-[Protomaps](https://protomaps.com/)' PMTiles format — see
-`frontend/src/components/MapView.tsx`. It's served as a static file (no
-external tile host, no API key), which is what actually stops tile requests
-from depending on network access this project's own sandbox has shown can be
-unreliable (`tile.openstreetmap.org` and `tiles.openfreemap.org` are both
-blocked by some egress policies).
+The geographic map draws a self-hosted [Protomaps](https://protomaps.com/)
+vector basemap. It uses no tile host and no API key, and needs no network
+access at runtime: every file is served statically by the frontend.
 
-## This is a placeholder, not real map data
+| File (under `frontend/public/`) | What it is |
+|---|---|
+| `tiles/manipal.pmtiles` | Vector tiles for the study area: earth, water, land use, roads, buildings, boundaries, places and POIs |
+| `basemap/sprites/dark*` | POI and place icons for the `dark` flavour (1× and 2×) |
+| `basemap/fonts/<fontstack>/<range>.pbf` | Noto Sans glyphs for the label layers |
 
-The checked-in `manipal.pmtiles` is a **tiny synthetic file** (a few hundred
-bytes) generated to prove the integration path end-to-end — the pmtiles
-protocol registration, the vector style, and rendering with zero network
-requests. It is not a real map of Manipal: it contains a handful of
-fabricated polygons and one line repeated across a small zoom pyramid, not
-actual roads, buildings, or water bodies.
+The style that uses them is built in `frontend/src/map/basemapStyle.ts`, and
+`frontend/src/map/basemap.test.ts` checks that everything it references
+exists. There is only one copy of each file, in `frontend/public/`. That is the
+directory Vite serves, and the only one inside the frontend's Docker build
+context.
 
-## Replacing it with the real extract
+## What the extract covers
 
-1. Go to [protomaps.com/extracts](https://app.protomaps.com/) (or the current
-   build-tool URL on protomaps.com) and build an extract for Manipal,
-   Karnataka, India — a small bounding box around 13.35°N, 74.789°E is
-   plenty; this doesn't need to be a huge area.
-2. Download the resulting `.pmtiles` file.
-3. Replace **both**:
-   - `data/tiles/manipal.pmtiles` (this directory — the canonical copy, same
-     convention as `data/seed/`)
-   - `frontend/public/tiles/manipal.pmtiles` (the copy Vite actually serves
-     at `/tiles/manipal.pmtiles` in dev and bundles into `dist/` on build)
+- **Area:** 74.75–74.83 °E, 13.31–13.39 °N. That is the seed network plus
+  about 2 km on each side. The map's `maxBounds` stops panning at this edge,
+  because beyond it there are no street-level tiles.
+- **Zooms:** 0–15, which is the planet build's own maximum. MapLibre
+  overzooms past 15.
+- **Size:** about 1.3 MiB of tiles (131 tiles), plus about 1 MiB of glyphs and
+  sprites.
+- **Fonts:** Latin, Latin Extended and General Punctuation, plus Kannada for
+  local names that have no English form. Labels prefer English (`lang: "en"`).
 
-If the real extract grows large enough that duplicating it into the
-frontend's own build output stops being reasonable, switch
-`frontend/public/tiles/manipal.pmtiles` for a backend static-file route
-instead (a `StaticFiles` mount in `backend/app/main.py` is a two-line
-addition) and point `MapView.tsx`'s `pmtiles://` source URL at that route.
+The seed network is **synthetic**, so its junctions do not line up with the
+real streets now drawn underneath it. Ingesting the real road network
+(`TOPOLOGY_SOURCE=osm`, see `.env.example`) is the way to align the two.
 
-## Regenerating the synthetic placeholder
+## Regenerating
 
-The placeholder was built from hand-authored MVT (Mapbox Vector Tile)
-buffers using `vt-pbf` for encoding and the `pmtiles` Python package's
-`Writer` for archive assembly — there's no checked-in generator script for it
-since it exists only to be replaced.
+```bash
+pip install pmtiles requests
+python data/scripts/build_basemap.py                  # newest Protomaps daily build
+python data/scripts/build_basemap.py --date 20260924  # a specific build
+```
+
+The script reads only the tiles it needs, using HTTP byte ranges against the
+Protomaps daily planet build. It then downloads the sprite and glyphs from
+`protomaps.github.io/basemaps-assets` and overwrites the files above in place.
+If you change the area with `--bbox`, also update `BASEMAP_BOUNDS` in
+`basemapStyle.ts`; the test fails until the two agree.
+
+## Serving it elsewhere
+
+PMTiles is read with HTTP **byte-range** requests. The Vite dev and preview
+servers support them, as do nginx, Caddy and any object store. A server that
+ignores `Range` and returns the whole file makes the map fail with "Server
+returned no content-length header or content-length exceeding request".
+
+## Licensing
+
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+  contributors, under the ODbL. The Protomaps build of it is attributed on the
+  map.
+- Noto Sans glyphs are under the SIL Open Font License.
+- The sprite comes from Protomaps
+  [basemaps-assets](https://github.com/protomaps/basemaps-assets).
