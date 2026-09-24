@@ -82,3 +82,51 @@ def test_disconnected_and_empty_graphs_agree():
         == cascade._calculate_global_efficiency_py(G)
         == 0.0
     )
+
+
+def test_out_of_range_edge_raises_value_error_not_a_panic():
+    """A bad index used to panic inside Rust, surfacing as PanicException --
+    a BaseException subclass that ordinary `except Exception` handlers miss."""
+    with pytest.raises(ValueError, match="outside 0..2"):
+        cascade._rust_global_efficiency(2, [(0, 1), (1, 2)], None)
+
+
+def test_computation_releases_the_gil():
+    """Another Python thread must make progress while a large graph is scored.
+
+    Holding the GIL for the whole rayon computation froze every other thread in
+    the process, the API's event loop included. The counter thread records a
+    timestamp per iteration; at least one must fall strictly inside the call.
+    The edges of the window are excluded, since a GIL handoff just before or
+    after the call can land either way whether or not the GIL is released.
+    """
+    import bisect
+    import threading
+    import time
+
+    rng = random.Random(7)
+    n = 4000
+    edges = [(i, (i + 1) % n) for i in range(n)]
+    edges += [(rng.randrange(n), rng.randrange(n)) for _ in range(7 * n)]
+
+    stamps: list[float] = []
+    done = threading.Event()
+
+    def tick():
+        while not done.is_set():
+            stamps.append(time.perf_counter())
+
+    counter = threading.Thread(target=tick)
+    counter.start()
+    try:
+        start = time.perf_counter()
+        cascade._rust_global_efficiency(n, edges, None)
+        end = time.perf_counter()
+    finally:
+        done.set()
+        counter.join()
+
+    margin = min(0.01, (end - start) / 4)
+    lo, hi = start + margin, end - margin
+    inside = bisect.bisect_left(stamps, hi) - bisect.bisect_right(stamps, lo)
+    assert inside > 0, "no other Python thread ran while the extension computed"

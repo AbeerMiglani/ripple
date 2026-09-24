@@ -15,6 +15,8 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -149,6 +151,37 @@ async def test_middleware_reuses_an_incoming_request_id():
     response = await add_correlation_id(_FakeRequest({REQUEST_ID_HEADER: "caller-supplied-id"}), call_next)
 
     assert response.headers[REQUEST_ID_HEADER] == "caller-supplied-id"
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        "x" * 129,  # unbounded length lands in every log line for the request
+        "id with spaces",
+        "id\u2028with-line-separator",
+        '{"injected": true}',
+        "",
+    ],
+)
+async def test_middleware_replaces_an_implausible_request_id(hostile):
+    async def call_next(_request):
+        return _FakeResponse()
+
+    response = await add_correlation_id(_FakeRequest({REQUEST_ID_HEADER: hostile}), call_next)
+
+    replaced = response.headers[REQUEST_ID_HEADER]
+    assert replaced != hostile
+    assert uuid.UUID(replaced)
+
+
+@pytest.mark.parametrize("plausible", ["caller-supplied-id", "a" * 128, "svc:trace.01_AB-9", str(uuid.uuid4())])
+async def test_middleware_keeps_a_plausible_request_id(plausible):
+    async def call_next(_request):
+        return _FakeResponse()
+
+    response = await add_correlation_id(_FakeRequest({REQUEST_ID_HEADER: plausible}), call_next)
+
+    assert response.headers[REQUEST_ID_HEADER] == plausible
 
 
 async def test_middleware_resets_the_context_var_after_the_request():

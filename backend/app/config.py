@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     max_initial_failures: int = Field(default=25, ge=1, le=1_000)
     max_scenario_modifications: int = Field(default=20, ge=1, le=1_000)
     centrality_cache_ttl_seconds: int = Field(default=300, ge=0, le=86_400)
+    # A completed run's recommendations never change, and each request reruns
+    # the cascade once per candidate. 0 disables the cache.
+    recommendation_cache_ttl_seconds: int = Field(default=3600, ge=0, le=86_400)
     # Bounds cascade propagation work. Reaching it truncates the cascade and
     # marks the result non-stabilized; it never fails the simulation.
     max_cascade_waves: int = Field(default=50, ge=1, le=10_000)

@@ -144,3 +144,24 @@ def test_semantics_are_opt_in_and_off_by_default():
 
     assert without == {"GRID"}
     assert with_semantics == {"GRID", "HOSP"}
+
+
+def test_every_engine_edge_type_is_mirrored_to_neo4j():
+    """An unmapped edge type is silently left out of the Neo4j mirror, so GDS
+    centrality would rank a different graph from the NetworkX fallback."""
+    from app.services.graph_sync import RELATIONSHIP_TYPES
+    from app.simulation.semantics import EDGE_TYPES
+
+    assert set(RELATIONSHIP_TYPES) == set(EDGE_TYPES)
+
+
+def test_scenario_add_edge_accepts_every_engine_edge_type():
+    """Recommendation payloads copy an existing link's type into add_edge."""
+    import typing
+
+    from app.api.scenarios import AddEdgeModification
+    from app.simulation.semantics import EDGE_TYPES
+
+    hint = typing.get_type_hints(AddEdgeModification)["edge_type"]
+    accepted = set(typing.get_args(hint))
+    assert accepted == set(EDGE_TYPES)

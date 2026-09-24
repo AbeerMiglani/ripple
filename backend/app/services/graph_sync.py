@@ -8,7 +8,7 @@ PostGIS (canonical data) → Neo4j (graph analytics engine).
 Relationships:
 - power_supply, water_supply → :SUPPLIES
 - road_link → :CONNECTS
-- depends_on → :DEPENDS_ON
+- depends_on, requires_power, requires_water, requires_transit → :DEPENDS_ON
 """
 
 from sqlalchemy.orm import Session
@@ -17,10 +17,26 @@ from app.db.neo4j import neo4j_session
 from app.models.network import Edge, Node
 from app.simulation.isolation import graph_fingerprint, isolated_graph
 
+#: Neo4j relationship type for every edge type the engine understands. Must
+#: cover all of app.simulation.semantics.EDGE_TYPES: an unmapped type is simply
+#: never mirrored, so GDS centrality would rank a different graph from the
+#: NetworkX fallback without any error to say so. The original property is kept
+#: on each relationship as ``type``.
+RELATIONSHIP_TYPES: dict[str, str] = {
+    "power_supply": "SUPPLIES",
+    "water_supply": "SUPPLIES",
+    "road_link": "CONNECTS",
+    "depends_on": "DEPENDS_ON",
+    "requires_power": "DEPENDS_ON",
+    "requires_water": "DEPENDS_ON",
+    "requires_transit": "DEPENDS_ON",
+}
+
 #: Re-exported so persistence-side callers can reach the isolation helpers from
 #: the graph service they already import. The implementation lives in
 #: app.simulation.isolation so the engine keeps working without a DB driver.
 __all__ = [
+    "RELATIONSHIP_TYPES",
     "clear_network_from_neo4j",
     "graph_fingerprint",
     "isolated_graph",
@@ -131,18 +147,9 @@ def sync_network_to_neo4j(db: Session, network_id: str):
                 type=ntype,
             )
 
-        # 4. Ingest Edges
-        # Map edge types to Neo4j relationship types
-        rel_types = {
-            "power_supply": "SUPPLIES",
-            "water_supply": "SUPPLIES",
-            "road_link": "CONNECTS",
-            "depends_on": "DEPENDS_ON",
-        }
-
-        # Since Neo4j parameterization doesn't support dynamic relationship types natively
-        # without APOC, we group by type and insert
-        for edge_type, rel_type in rel_types.items():
+        # 4. Ingest Edges. Neo4j cannot parameterize a relationship type
+        # without APOC, so edges are grouped by type and inserted per group.
+        for edge_type, rel_type in RELATIONSHIP_TYPES.items():
             type_edges = [e for e in edge_dicts if e["type"] == edge_type]
             if not type_edges:
                 continue

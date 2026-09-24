@@ -30,7 +30,19 @@ class AddEdgeModification(BaseModel):
     type: Literal["add_edge"]
     source: UUID4
     target: UUID4
-    edge_type: Literal["power_supply", "water_supply", "road_link", "depends_on"]
+    # Every type the engine understands (app.simulation.semantics.EDGE_TYPES):
+    # the recommendation engine copies an existing link's type into its
+    # add_edge payloads, so a narrower list here made those payloads
+    # un-postable on any dataset that uses the explicit requires_* types.
+    edge_type: Literal[
+        "power_supply",
+        "water_supply",
+        "road_link",
+        "depends_on",
+        "requires_power",
+        "requires_water",
+        "requires_transit",
+    ]
     weight: float = Field(default=1.0, ge=0, le=1_000_000)
     capacity: float = Field(default=100.0, gt=0, le=1_000_000)
     is_bidirectional: bool = False
@@ -122,19 +134,11 @@ def create_scenario(
     }
     referenced_ids = {str(node_id) for node_id in req.initial_failures}
     for modification in req.modifications:
+        # The discriminated union guarantees one of these two models.
         if isinstance(modification, AddEdgeModification):
             referenced_ids.update({str(modification.source), str(modification.target)})
-        elif isinstance(modification, UpgradeNodeModification):
+        else:
             referenced_ids.add(str(modification.node_id))
-        elif getattr(modification, "type", None) == "add_edge":
-            referenced_ids.update({str(modification.source), str(modification.target)})
-        elif getattr(modification, "type", None) == "upgrade_node":
-            referenced_ids.add(str(modification.node_id))
-        elif isinstance(modification, dict):
-            if modification.get("type") == "add_edge":
-                referenced_ids.update({str(modification["source"]), str(modification["target"])})
-            elif modification.get("type") == "upgrade_node":
-                referenced_ids.add(str(modification["node_id"]))
 
     if referenced_ids - known_ids:
         raise HTTPException(status_code=422, detail="Scenario references nodes outside this network")
@@ -145,8 +149,6 @@ def create_scenario(
         description=req.description,
         modifications=[
             modification.model_dump(mode="json", exclude_none=True)
-            if hasattr(modification, "model_dump")
-            else modification
             for modification in req.modifications
         ],
         initial_failures=[str(uid) for uid in req.initial_failures]

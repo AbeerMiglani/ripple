@@ -63,7 +63,7 @@ export default function ExplainPanel({
   const { data: topology } = useNetworkTopology(networkId);
 
   const completedId = result && result.status === "completed" ? result.id : null;
-  const { data: mitigations } = useMitigations(completedId, 10);
+  const { data: mitigations } = useMitigations(completedId);
 
   // If the current result *is* the scenario re-run of the last applied
   // scenario, pull the baseline/scenario pair so the explanation can speak

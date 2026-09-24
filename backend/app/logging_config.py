@@ -23,6 +23,7 @@ from __future__ import annotations
 import contextvars
 import json
 import logging
+import re
 import uuid
 
 from fastapi import Request
@@ -82,6 +83,18 @@ def configure_logging(level: int = logging.INFO) -> None:
 #: response so a caller can correlate it with server-side logs.
 REQUEST_ID_HEADER = "X-Request-ID"
 
+#: What an incoming id may look like to be reused: UUIDs, trace ids and the
+#: usual "service:1234"-style tokens all fit. The header is caller-controlled
+#: and lands verbatim in every log line and response for the request, so
+#: anything longer or stranger is replaced with a fresh id rather than trusted.
+_ACCEPTABLE_REQUEST_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}")
+
+
+def _request_id_from(value: str | None) -> str:
+    if value and _ACCEPTABLE_REQUEST_ID.fullmatch(value):
+        return value
+    return str(uuid.uuid4())
+
 
 async def add_correlation_id(request: Request, call_next):
     """FastAPI HTTP middleware: tags every log line produced while handling
@@ -89,9 +102,10 @@ async def add_correlation_id(request: Request, call_next):
 
     Reuses an incoming X-Request-ID rather than always minting a new one, so
     a request forwarded through another service that already assigned an id
-    keeps it end to end.
+    keeps it end to end -- provided it is a plausible id (see
+    ``_ACCEPTABLE_REQUEST_ID``); otherwise a fresh one is minted.
     """
-    correlation_id = request.headers.get(REQUEST_ID_HEADER) or str(uuid.uuid4())
+    correlation_id = _request_id_from(request.headers.get(REQUEST_ID_HEADER))
     token = correlation_id_var.set(correlation_id)
     try:
         response = await call_next(request)

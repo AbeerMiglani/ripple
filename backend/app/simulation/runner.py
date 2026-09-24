@@ -9,7 +9,6 @@ try:
 except ImportError:
     UTC = timezone.utc
 
-import networkx as nx
 from celery import shared_task
 from redis.exceptions import ConnectionError as RedisConnectionError
 from redis.exceptions import TimeoutError as RedisTimeoutError
@@ -25,6 +24,10 @@ from app.services.graph_build import build_graph
 from app.simulation.cascade import run_cascade
 from app.simulation.isolation import isolated_graph
 from app.simulation.population import calculate_population_impact
+# Re-exported: this module was its home, and existing callers import it from here.
+from app.simulation.scenario import apply_scenario_modifications
+
+__all__ = ["TRANSIENT_INFRA_ERRORS", "apply_scenario_modifications", "run_simulation_task"]
 
 logger = logging.getLogger(__name__)
 
@@ -34,70 +37,6 @@ logger = logging.getLogger(__name__)
 #: (a bad scenario, a bug in the cascade engine) is not: retrying a
 #: deterministic error just reproduces it three times slower.
 TRANSIENT_INFRA_ERRORS = (OperationalError, RedisConnectionError, RedisTimeoutError)
-
-
-def _setting(name: str, default):
-    """Read a setting defensively.
-
-    The test suite replaces ``app.config`` with a MagicMock, so a bare
-    ``settings.x`` returns a truthy Mock rather than a value. Anything read on
-    a path the tests exercise goes through here, which coerces to the expected
-    type and falls back to the documented default.
-    """
-    value = getattr(settings, name, default)
-    if isinstance(default, bool):
-        return value if isinstance(value, bool) else default
-    if isinstance(default, int):
-        return value if isinstance(value, int) else default
-    return value if isinstance(value, type(default)) else default
-
-
-def apply_scenario_modifications(
-    G: nx.DiGraph,
-    modifications: list[dict],
-) -> nx.DiGraph:
-    """
-    Applies polymorphic scenario modifications (add_edge and upgrade_node)
-    to a copy of the in-memory graph.
-    """
-    G_mod = G.copy()
-    for mod in modifications:
-        mod_type = mod.get("type")
-        if mod_type == "add_edge":
-            src = str(mod["source"])
-            tgt = str(mod["target"])
-            if src not in G_mod or tgt not in G_mod or src == tgt:
-                raise ValueError("scenario references invalid graph endpoints")
-            weight = float(mod.get("weight", 1.0))
-            capacity = float(mod.get("capacity", 100.0))
-            edge_type = mod.get("edge_type", "power_supply")
-            is_bi = bool(mod.get("is_bidirectional", False))
-
-            G_mod.add_edge(src, tgt, weight=weight, capacity=capacity, edge_type=edge_type)
-            if is_bi:
-                G_mod.add_edge(tgt, src, weight=weight, capacity=capacity, edge_type=edge_type)
-
-        elif mod_type == "upgrade_node":
-            nid = str(mod["node_id"])
-            if nid not in G_mod:
-                raise ValueError(f"scenario upgrade references unknown node {nid}")
-
-            if mod.get("capacity") is not None:
-                G_mod.nodes[nid]["capacity"] = float(mod["capacity"])
-            elif mod.get("capacity_multiplier") is not None:
-                G_mod.nodes[nid]["capacity"] *= float(mod["capacity_multiplier"])
-            elif mod.get("capacity_add") is not None:
-                G_mod.nodes[nid]["capacity"] += float(mod["capacity_add"])
-
-            if mod.get("failure_threshold") is not None:
-                G_mod.nodes[nid]["failure_threshold"] = float(mod["failure_threshold"])
-            elif mod.get("failure_threshold_add") is not None:
-                G_mod.nodes[nid]["failure_threshold"] += float(mod["failure_threshold_add"])
-
-        else:
-            raise ValueError(f"unsupported scenario modification type: {mod_type}")
-
-    return G_mod
 
 
 def _mark_failed(db: Session, simulation_id: str, message: str) -> None:
@@ -185,9 +124,9 @@ def run_simulation_task(
             waves, eff_before, eff_after, pop_affected, stabilized = run_cascade(
                 G_run,
                 initial_failures,
-                max_waves=_setting("max_cascade_waves", 50),
+                max_waves=settings.max_cascade_waves,
                 on_wave_completed=on_wave,
-                enforce_edge_semantics=_setting("enforce_edge_semantics", True),
+                enforce_edge_semantics=settings.enforce_edge_semantics,
             )
 
         # 5. Population impact, deduplicated across overlapping service areas.

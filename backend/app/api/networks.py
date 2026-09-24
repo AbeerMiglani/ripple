@@ -114,39 +114,16 @@ def get_centrality(
     Calculate and return centrality scores for all nodes in the network.
     Default metric is Betweenness Centrality (primary), with PageRank as secondary.
     """
-    # Verify network exists
-    net = db.query(Network).filter(Network.id == network_id).first()
+    net = db.query(Network.id).filter(Network.id == network_id).first()
     if not net:
         raise HTTPException(status_code=404, detail="Network not found")
-        
+
+    # Every row carries its name, type and provenance whichever engine scored
+    # it -- see app.services.analytics._ranked_row.
     try:
         results = calculate_centrality(str(network_id), metric=metric, db=db)
     except Exception:
         logger.exception("centrality calculation failed for network %s with metric %s", network_id, metric)
         raise HTTPException(status_code=503, detail="Centrality service unavailable")
-
-    # Defensive enrichment: If results lack name/node_type, populate from PostgreSQL
-    missing_meta = any("name" not in r or "node_type" not in r for r in results)
-    if missing_meta and results:
-        node_records = db.query(Node).filter(Node.network_id == network_id).all()
-        node_lookup = {str(n.id): n for n in node_records}
-        for r in results:
-            node = node_lookup.get(str(r.get("node_id")))
-            if node:
-                r.setdefault("name", node.name)
-                r.setdefault("display_name", getattr(node, "display_name", None) or node.name)
-                r.setdefault("node_type", node.node_type)
-                r.setdefault("is_synthetic", getattr(node, "is_synthetic", True))
-                r.setdefault("data_source", getattr(node, "data_source", "synthetic"))
-                r.setdefault("name_source", getattr(node, "name_source", "synthetic"))
-                r.setdefault("data_quality", getattr(node, "data_quality", "estimated"))
-            else:
-                r.setdefault("name", f"Node {str(r.get('node_id'))[:8]}")
-                r.setdefault("display_name", f"Node {str(r.get('node_id'))[:8]}")
-                r.setdefault("node_type", "unknown")
-                r.setdefault("is_synthetic", True)
-                r.setdefault("data_source", "synthetic")
-                r.setdefault("name_source", "synthetic")
-                r.setdefault("data_quality", "estimated")
 
     return results

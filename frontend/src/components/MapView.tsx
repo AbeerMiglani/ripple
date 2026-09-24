@@ -54,6 +54,9 @@ const EDGE_COLORS: Record<EdgeType, [number, number, number, number]> = {
   water_supply: [59, 130, 246, 150],
   road_link: [100, 116, 139, 110],
   depends_on: [197, 143, 196, 150],
+  requires_power: [248, 113, 113, 150],
+  requires_water: [96, 165, 250, 150],
+  requires_transit: [148, 163, 184, 130],
 };
 
 // Protomaps vector basemap, self-hosted as a static PMTiles file (see
@@ -101,6 +104,9 @@ const EDGE_LABELS: Record<EdgeType, string> = {
   water_supply: "Water supply",
   road_link: "Road link",
   depends_on: "Dependency",
+  requires_power: "Requires power",
+  requires_water: "Requires water",
+  requires_transit: "Requires transit",
 };
 
 export default function MapView({ nodes, edges }: MapViewProps) {
@@ -175,12 +181,33 @@ export default function MapView({ nodes, edges }: MapViewProps) {
 
   const visibleEdgeTypes = useMemo(() => new Set(edges.map((e) => e.edge_type)), [edges]);
 
+  // What is drawn, independent of the cascade state. Memoized separately from
+  // updateLayers because that callback re-runs on every pulse-animation frame
+  // while anything is failed; rebuilding the edge rows there re-filtered and
+  // re-allocated the full edge list 60 times a second for data that only
+  // changes with the topology or the roads toggle.
+  const visibleNodes = useMemo(
+    () => (showRoads ? nodes : nodes.filter((n) => n.node_type !== "road_junction")),
+    [nodes, showRoads]
+  );
+  const edgeData = useMemo(() => {
+    const visibleIds = new Set(visibleNodes.map((n) => n.id));
+    const rows: EdgeRow[] = [];
+    for (const e of edges) {
+      if (!showRoads && e.edge_type === "road_link") continue;
+      if (!visibleIds.has(e.source_id) || !visibleIds.has(e.target_id)) continue;
+      const src = nodeById.get(e.source_id);
+      const tgt = nodeById.get(e.target_id);
+      if (!src || !tgt) continue;
+      rows.push({ ...e, sourcePos: [src.lng, src.lat], targetPos: [tgt.lng, tgt.lat], src, tgt });
+    }
+    return rows;
+  }, [edges, visibleNodes, nodeById, showRoads]);
+
   // Update deck.gl layers when state changes
   const updateLayers = useCallback(() => {
     if (!deckRef.current) return;
     const lookup = nodeById;
-
-    const visibleNodes = showRoads ? nodes : nodes.filter((n) => n.node_type !== "road_junction");
 
     const nodeLayer = new ScatterplotLayer<InfraNode>({
       id: "nodes",
@@ -240,20 +267,7 @@ export default function MapView({ nodes, edges }: MapViewProps) {
       },
     });
 
-    // Build edge line data, colored by edge_type (dimmed further when either
-    // endpoint is a hidden road junction and roads are off).
-    const visibleIds = new Set(visibleNodes.map((n) => n.id));
-    const edgeData = edges
-      .filter((e) => showRoads || e.edge_type !== "road_link")
-      .map((e) => {
-        const src = lookup.get(e.source_id);
-        const tgt = lookup.get(e.target_id);
-        if (!src || !tgt) return null;
-        if (!visibleIds.has(e.source_id) || !visibleIds.has(e.target_id)) return null;
-        return { ...e, sourcePos: [src.lng, src.lat] as [number, number], targetPos: [tgt.lng, tgt.lat] as [number, number], src, tgt };
-      })
-      .filter(Boolean) as EdgeRow[];
-
+    // Edge lines, coloured by edge_type; rows are memoized above.
     const edgeLayer = new LineLayer<EdgeRow>({
       id: "edges",
       data: edgeData,
@@ -297,7 +311,7 @@ export default function MapView({ nodes, edges }: MapViewProps) {
     });
 
     deckRef.current.setProps({ layers: [edgeLayer, blastLayer, nodeLayer] });
-  }, [nodes, edges, failedNodeIds, restoredNodeIds, savedNodeIds, selectedNodeIds, hoveredNodeId, pulseRadius, nodeById, toggleNodeSelection, setHoveredNode, mode, redundancyNodes, showRoads]);
+  }, [visibleNodes, edgeData, failedNodeIds, restoredNodeIds, savedNodeIds, selectedNodeIds, hoveredNodeId, pulseRadius, nodeById, toggleNodeSelection, setHoveredNode, mode, redundancyNodes]);
 
   // Initialize MapLibre + deck.gl
   useEffect(() => {

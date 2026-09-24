@@ -5,6 +5,7 @@
 //! `nx.all_pairs_shortest_path_length` on a `DiGraph`), and every ordered
 //! reachable pair contributes `1 / distance`.
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::collections::VecDeque;
@@ -58,10 +59,34 @@ fn global_efficiency_impl(num_nodes: usize, edges: &[(usize, usize)], n_baseline
     total / denom
 }
 
+/// The first edge with an endpoint outside `0..num_nodes`, if any. Indexing
+/// the adjacency list with one would panic, which surfaces in Python as an
+/// opaque `PanicException` instead of a catchable `ValueError`.
+fn first_out_of_range_edge(num_nodes: usize, edges: &[(usize, usize)]) -> Option<(usize, usize)> {
+    edges
+        .iter()
+        .copied()
+        .find(|&(u, v)| u >= num_nodes || v >= num_nodes)
+}
+
 #[pyfunction]
 #[pyo3(signature = (num_nodes, edges, n_baseline=None))]
-fn global_efficiency(num_nodes: usize, edges: Vec<(usize, usize)>, n_baseline: Option<usize>) -> f64 {
-    global_efficiency_impl(num_nodes, &edges, n_baseline)
+fn global_efficiency(
+    py: Python<'_>,
+    num_nodes: usize,
+    edges: Vec<(usize, usize)>,
+    n_baseline: Option<usize>,
+) -> PyResult<f64> {
+    if let Some((u, v)) = first_out_of_range_edge(num_nodes, &edges) {
+        return Err(PyValueError::new_err(format!(
+            "edge ({u}, {v}) references a node outside 0..{num_nodes}"
+        )));
+    }
+    // The computation touches no Python objects, so the GIL is released for
+    // its duration. Holding it stalled every other thread in the process --
+    // including the API's event loop, since the recommendation engine calls
+    // this twice per candidate from a request handler.
+    Ok(py.allow_threads(|| global_efficiency_impl(num_nodes, &edges, n_baseline)))
 }
 
 #[pymodule]
@@ -72,7 +97,19 @@ fn ripple_graph_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::global_efficiency_impl;
+    use super::{first_out_of_range_edge, global_efficiency_impl};
+
+    #[test]
+    fn in_range_edges_pass_validation() {
+        assert_eq!(first_out_of_range_edge(3, &[(0, 1), (1, 2)]), None);
+        assert_eq!(first_out_of_range_edge(0, &[]), None);
+    }
+
+    #[test]
+    fn out_of_range_edges_are_reported_not_panicked_on() {
+        assert_eq!(first_out_of_range_edge(2, &[(0, 1), (1, 2)]), Some((1, 2)));
+        assert_eq!(first_out_of_range_edge(2, &[(5, 0)]), Some((5, 0)));
+    }
 
     #[test]
     fn empty_graph_has_zero_efficiency() {

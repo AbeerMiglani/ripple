@@ -11,10 +11,10 @@
  * itself only stages the top candidate; alternatives are informational.
  */
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useSimulationStore, StoredScenario } from "../stores/simulationStore";
 import { useUIStore } from "../stores/uiStore";
-import { useNetworkTopology, pollSimulationUntilSettled } from "../api/hooks";
+import { createScenario, useMitigations, useNetworkTopology, pollSimulationUntilSettled } from "../api/hooks";
+import { apiPost } from "../api/client";
 import type { InfraNode, MitigationRecommendation, Modification, SimulationResult } from "../types";
 import { comparablePopulation } from "../types";
 import { failedNodeIdsForResult } from "../utils/derive";
@@ -86,6 +86,9 @@ function interventionOutcome(baseline: SimulationResult, scenario: SimulationRes
   return { saved, newlyAffected };
 }
 
+/** The top-ranked candidate plus this many minus one alternatives. */
+const PANEL_LIMIT = 5;
+
 export default function RecommendationPanel() {
   const result = useSimulationStore((s) => s.result);
   const isRunning = useSimulationStore((s) => s.isRunning);
@@ -131,27 +134,17 @@ export default function RecommendationPanel() {
   const [applying, setApplying] = useState<Set<number>>(new Set());
   const [applyErrors, setApplyErrors] = useState<Map<number, string>>(new Map());
 
-  const { data: recommendations, isLoading, isError } = useQuery({
-    queryKey: ["recommendations", result?.id],
-    queryFn: async () => {
-      const res = await fetch(`/api/simulations/${result!.id}/recommendations?limit=5`);
-      if (!res.ok) throw new Error("Failed to fetch recommendations");
-      return res.json() as Promise<MitigationRecommendation[]>;
-    },
-    enabled: result?.status === "completed",
-  });
+  // Shared with ImpactSummary and ExplainPanel: one request per run, sliced here.
+  const { data: mitigations, isLoading, isError, error } = useMitigations(
+    result?.status === "completed" ? result.id : null
+  );
+  const recommendations = mitigations?.slice(0, PANEL_LIMIT);
 
   const runInterventionSequence = async (rec: MitigationRecommendation, baseline: SimulationResult) => {
     // Ensure baselineSimulationId is saved before running the what-if scenario.
     if (!baselineSimulationId) setBaselineSimulationId(baseline.id);
 
-    const scenarioRes = await fetch("/api/scenarios", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rec.scenario_payload),
-    });
-    if (!scenarioRes.ok) throw new Error("Failed to create scenario");
-    const scenario = await scenarioRes.json();
+    const scenario = await createScenario(rec.scenario_payload);
 
     const entry: StoredScenario = {
       id: scenario.id,
@@ -164,17 +157,15 @@ export default function RecommendationPanel() {
     registerScenario(entry);
     setLastAppliedScenarioId(scenario.id);
 
-    const simRes = await fetch("/api/simulations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const simData = await apiPost<SimulationResult>(
+      "/api/simulations",
+      {
         network_id: rec.scenario_payload.network_id,
         initial_failures: rec.scenario_payload.initial_failures,
         scenario_id: scenario.id,
-      }),
-    });
-    if (!simRes.ok) throw new Error("Failed to start simulation");
-    const simData = await simRes.json();
+      },
+      "Failed to start simulation"
+    );
 
     const pollData = await pollSimulationUntilSettled(simData.id);
     addSimulation(
@@ -265,7 +256,11 @@ export default function RecommendationPanel() {
       state={recommendations ? (reviewing ? "In review" : `Rank 1 of ${recommendations.length}`) : isLoading ? "Loading" : "Unavailable"}
     >
       {isLoading && <div style={{ color: "var(--rp-mute)", fontSize: 13 }}>Loading recommendations…</div>}
-      {isError && <div style={{ color: "var(--rp-wave-0)", fontSize: 13 }}>Failed to load recommendations.</div>}
+      {isError && (
+        <div style={{ color: "var(--rp-wave-0)", fontSize: 13 }}>
+          Failed to load recommendations{error instanceof Error ? `: ${error.message}` : "."}
+        </div>
+      )}
       {recommendations && recommendations.length === 0 && <div style={{ color: "var(--rp-mute)", fontSize: 13 }}>No recommendations available.</div>}
 
       {(top || reviewSnapshot) && (() => {

@@ -42,7 +42,7 @@ export default function ImpactSummary() {
   const { data: topology } = useNetworkTopology(networkId);
 
   const completedId = result && result.status === "completed" ? result.id : null;
-  const { data: mitigations } = useMitigations(completedId, 1);
+  const { data: mitigations } = useMitigations(completedId);
   const topMitigation = mitigations?.[0];
 
   const critical = useMemo(() => {
