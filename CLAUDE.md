@@ -26,7 +26,9 @@ most critical assets, and recommends interventions that are verified by rerunnin
   - `native/ripple_graph_rs/` — optional Rust (PyO3 + rayon) acceleration for global efficiency;
     the Python fallback in `app/simulation/cascade.py` must stay numerically identical.
 - `frontend/` — React + Vite + TanStack Query + Zustand, MapLibre + deck.gl map, Cytoscape graph.
-- `data/seed/` — synthetic seed network; `data/scripts/` — generator and scripted demo.
+- `data/seed/` — synthetic seed network; `data/scripts/` — generator, scripted demo and
+  `build_basemap.py`, which builds the self-hosted map tiles, fonts and sprite under
+  `frontend/public/` (see `data/tiles/README.md`).
 - `./demo` — one-command Docker Compose runner (`./demo up|status|test|down|reset`).
 
 ## Checks (what CI runs)

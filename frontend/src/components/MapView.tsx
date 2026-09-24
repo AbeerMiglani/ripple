@@ -7,8 +7,9 @@
  * layer toggle, all on top of a self-hosted Protomaps vector basemap (this
  * network is georeferenced to real Manipal coordinates, unlike the design
  * mockup's synthetic "no basemap" network view). The basemap is a local
- * PMTiles file served as a static asset rather than raster tiles from a
- * third-party host — see data/tiles/README.md for why.
+ * PMTiles extract plus its sprite and fonts, served as static assets rather
+ * than raster tiles from a third-party host — see src/map/basemapStyle.ts and
+ * data/tiles/README.md.
  */
 
 import { useEffect, useRef, useCallback, useState, useMemo } from "react";
@@ -17,7 +18,6 @@ import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 // maplibregl.NavigationControl etc. exactly as the default import used to.
 import * as maplibregl from "maplibre-gl";
 import { Protocol as PMTilesProtocol } from "pmtiles";
-import { layers as protomapsLayers, namedTheme } from "protomaps-themes-base";
 import { Deck } from "@deck.gl/core";
 import { ScatterplotLayer, LineLayer } from "@deck.gl/layers";
 import type { InfraNode, InfraEdge, EdgeType } from "../types";
@@ -27,6 +27,7 @@ import { useSimulationStore } from "../stores/simulationStore";
 import { EmptyMapState, LoadingMapState, ErrorMapState } from "./shared/MapStateOverlay";
 import Banner from "./shared/Banner";
 import { useNodeLookup } from "../hooks/useNodeLookup";
+import { BASEMAP_MAX_BOUNDS, basemapStyle } from "../map/basemapStyle";
 
 interface MapViewProps {
   nodes: InfraNode[];
@@ -59,8 +60,6 @@ const EDGE_COLORS: Record<EdgeType, [number, number, number, number]> = {
   requires_transit: [148, 163, 184, 130],
 };
 
-// Protomaps vector basemap, self-hosted as a static PMTiles file (see
-// data/tiles/README.md) instead of raster tiles from a third-party host.
 // The "pmtiles://" protocol must be registered globally before any Map with
 // a pmtiles source is constructed; the module-level flag guards against
 // double registration across remounts (React StrictMode, hot reload).
@@ -71,14 +70,6 @@ function ensurePmtilesProtocolRegistered() {
   maplibregl.addProtocol("pmtiles", protocol.tile);
   pmtilesProtocolRegistered = true;
 }
-
-const BASEMAP_SOURCE_ID = "protomaps";
-// A leading "/" (rather than an absolute origin) keeps this working
-// unchanged across the Vite dev server, the built dist/ bundle, and the
-// Docker Compose frontend service, all of which serve it at the same path.
-const BASEMAP_PMTILES_URL = "pmtiles:///tiles/manipal.pmtiles";
-const BASEMAP_ATTRIBUTION =
-  '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, © <a href="https://protomaps.com" target="_blank">Protomaps</a>';
 
 /**
  * The tooltip is built as an HTML string, so anything interpolated into it has
@@ -321,26 +312,12 @@ export default function MapView({ nodes, edges }: MapViewProps) {
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          [BASEMAP_SOURCE_ID]: {
-            type: "vector",
-            url: BASEMAP_PMTILES_URL,
-            attribution: BASEMAP_ATTRIBUTION,
-          },
-        },
-        // protomaps-themes-base's layers() builds the full basemap style
-        // (earth/water/landuse/roads/buildings/boundaries/labels) against
-        // this source, so no hand-written layer list is needed here. Label
-        // layers reference "text-field" but this style sets no "glyphs" URL
-        // -- self-hosting font glyphs is a separate concern from the vector
-        // tile source this task replaces, so labels render as geometry
-        // only, without text.
-        layers: protomapsLayers(BASEMAP_SOURCE_ID, namedTheme("dark")),
-      },
+      style: basemapStyle(window.location.origin),
       center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
       zoom: INITIAL_VIEW.zoom,
+      // The extract has no street-level tiles beyond this box; panning past
+      // it would show an empty canvas.
+      maxBounds: BASEMAP_MAX_BOUNDS,
       // maplibre-gl 6 moved this under canvasContextAttributes; it was a
       // top-level MapOptions field before.
       canvasContextAttributes: { antialias: true },
@@ -402,8 +379,10 @@ export default function MapView({ nodes, edges }: MapViewProps) {
       },
     });
 
-    // Sync deck.gl viewState with MapLibre camera
-    map.on("move", () => {
+    // Sync deck.gl viewState with MapLibre camera. Once up front as well:
+    // maxBounds can adjust the initial camera without a "move" event, which
+    // would otherwise leave the overlay drawn for INITIAL_VIEW.
+    const syncDeckToMap = () => {
       const center = map.getCenter();
       deck.setProps({
         viewState: {
@@ -414,7 +393,9 @@ export default function MapView({ nodes, edges }: MapViewProps) {
           bearing: map.getBearing(),
         },
       });
-    });
+    };
+    syncDeckToMap();
+    map.on("move", syncDeckToMap);
 
     mapRef.current = map;
     deckRef.current = deck;
