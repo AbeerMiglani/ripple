@@ -37,7 +37,15 @@ export interface InfraNode {
 // ---------------------------------------------------------------------------
 // Edge types
 // ---------------------------------------------------------------------------
-export type EdgeType = "power_supply" | "water_supply" | "road_link" | "depends_on";
+export type EdgeType =
+  | "power_supply"
+  | "water_supply"
+  | "road_link"
+  | "depends_on"
+  // Explicit dependency declarations (see backend app/simulation/semantics.py).
+  | "requires_power"
+  | "requires_water"
+  | "requires_transit";
 
 export interface InfraEdge {
   id: string;
@@ -113,6 +121,8 @@ export interface SimulationResult {
   cascade_stabilized?: boolean;
   global_efficiency_before: number;
   global_efficiency_after: number;
+  /** The scenario this run applied; null for a run on the unmodified network. */
+  scenario_id?: string | null;
   status: "pending" | "running" | "completed" | "failed";
   /** Set by the backend when status is "failed"; null/absent otherwise. */
   error_message?: string | null;

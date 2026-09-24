@@ -54,6 +54,9 @@ const EDGE_COLORS: Record<EdgeType, [number, number, number, number]> = {
   water_supply: [59, 130, 246, 150],
   road_link: [100, 116, 139, 110],
   depends_on: [197, 143, 196, 150],
+  requires_power: [248, 113, 113, 150],
+  requires_water: [96, 165, 250, 150],
+  requires_transit: [148, 163, 184, 130],
 };
 
 // Protomaps vector basemap, self-hosted as a static PMTiles file (see
@@ -101,6 +104,9 @@ const EDGE_LABELS: Record<EdgeType, string> = {
   water_supply: "Water supply",
   road_link: "Road link",
   depends_on: "Dependency",
+  requires_power: "Requires power",
+  requires_water: "Requires water",
+  requires_transit: "Requires transit",
 };
 
 export default function MapView({ nodes, edges }: MapViewProps) {

@@ -81,6 +81,10 @@ class SimulationCreate(BaseModel):
 class SimulationResponse(BaseModel):
     id: UUID4
     network_id: UUID4
+    #: The scenario this run applied; None for a run on the unmodified network
+    #: (and for runs recorded before the link existed that could not be
+    #: back-filled).
+    scenario_id: Optional[UUID4] = None
     status: str
     initial_failures: list[UUID4]
     waves: list[WaveSchema] = Field(default_factory=list)

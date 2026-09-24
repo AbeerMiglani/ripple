@@ -30,7 +30,19 @@ class AddEdgeModification(BaseModel):
     type: Literal["add_edge"]
     source: UUID4
     target: UUID4
-    edge_type: Literal["power_supply", "water_supply", "road_link", "depends_on"]
+    # Every type the engine understands (app.simulation.semantics.EDGE_TYPES):
+    # the recommendation engine copies an existing link's type into its
+    # add_edge payloads, so a narrower list here made those payloads
+    # un-postable on any dataset that uses the explicit requires_* types.
+    edge_type: Literal[
+        "power_supply",
+        "water_supply",
+        "road_link",
+        "depends_on",
+        "requires_power",
+        "requires_water",
+        "requires_transit",
+    ]
     weight: float = Field(default=1.0, ge=0, le=1_000_000)
     capacity: float = Field(default=100.0, gt=0, le=1_000_000)
     is_bidirectional: bool = False

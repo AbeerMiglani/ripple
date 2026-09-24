@@ -206,6 +206,24 @@ class SimulationResult(Base):
     network_id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True), ForeignKey("networks.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    # The scenario whose modifications this run applied, or None for a run on
+    # the unmodified network. Recorded on the run itself because
+    # Scenario.cached_result_id only ever names a scenario's *latest* run: once
+    # a scenario is re-run, the older run would lose its link, and anything
+    # derived from it (its recommendations above all) would silently be
+    # computed against the wrong topology. use_alter because scenarios already
+    # references this table, so the two foreign keys form a cycle.
+    scenario_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey(
+            "scenarios.id",
+            ondelete="SET NULL",
+            use_alter=True,
+            name="fk_simulation_results_scenario_id",
+        ),
+        nullable=True,
+        index=True,
+    )
     status: Mapped[str] = mapped_column(
         Enum("pending", "running", "completed", "failed", name="sim_status_enum"),
         nullable=False,

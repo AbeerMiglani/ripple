@@ -18,7 +18,7 @@ from pydantic import UUID4, BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models.network import Edge, Node, SimulationResult
+from app.models.network import Edge, Node, Scenario, SimulationResult
 from app.services.graph_build import build_graph
 from app.simulation.cascade import (
     _build_supplier_index,
@@ -26,6 +26,7 @@ from app.simulation.cascade import (
     run_cascade,
 )
 from app.simulation.population import calculate_population_impact
+from app.simulation.scenario import apply_scenario_modifications
 
 logger = logging.getLogger(__name__)
 
@@ -294,6 +295,62 @@ def identify_candidate_nodes(
     return candidate_node_ids
 
 
+def _failed_ids(waves: list[dict[str, Any]]) -> set[str]:
+    """Every asset that failed in a run: the union of its (disjoint) marginal sets."""
+    failed: set[str] = set()
+    for w in waves:
+        failed.update(str(nid) for nid in w.get("failed_node_ids", []))
+    return failed
+
+
+def _score_candidate(
+    G_cand: nx.DiGraph,
+    G_population: nx.DiGraph,
+    initial_failures: list[str],
+    baseline_failed_count: int,
+    baseline_raw_pop: int,
+    baseline_efficiency: float,
+    baseline_failed_hospitals: set[str] | None,
+) -> dict[str, Any]:
+    """Rerun the cascade on one candidate graph and difference it against the baseline.
+
+    Both intervention types are scored here, so an upgrade and a redundancy
+    link are measured by exactly the same yardstick.
+
+    The rerun uses the same cascade model *and* wave guardrail as the runner
+    used for the baseline it is differenced against. With edge semantics off a
+    capacity upgrade could appear to rescue assets that had in fact lost every
+    feeder; with a different guardrail a candidate could appear to prevent
+    failures that were merely truncated.
+
+    Population on both sides comes from the same computation
+    (``calculate_population_impact`` over ``G_population``), so "population
+    saved" is a difference between like quantities.
+    """
+    waves_c, _, eff_after_c, _raw_pop_c, _ = run_cascade(
+        G_cand,
+        initial_failures,
+        max_waves=settings.max_cascade_waves,
+        enforce_edge_semantics=settings.enforce_edge_semantics,
+    )
+    failed = _failed_ids(waves_c)
+    cand_failed_count = sum(len(w.get("failed_node_ids", [])) for w in waves_c)
+    cand_pop = calculate_population_impact(failed, G_population)["raw_population_affected"]
+
+    protects_critical = bool(
+        baseline_failed_hospitals and baseline_failed_hospitals - failed
+    )
+    return {
+        "failures_prevented": baseline_failed_count - cand_failed_count,
+        "raw_population_saved": baseline_raw_pop - cand_pop,
+        "efficiency_gain": round(eff_after_c - baseline_efficiency, 5),
+        "protects_critical_services": protects_critical,
+        "candidate_failed_count": cand_failed_count,
+        "candidate_efficiency": eff_after_c,
+        "candidate_failed_ids": failed,
+    }
+
+
 def resimulate_candidate(
     G_baseline: nx.DiGraph,
     initial_failures: list[str],
@@ -312,49 +369,22 @@ def resimulate_candidate(
     if node_id in G_cand.nodes:
         G_cand.nodes[node_id]["capacity"] = float(proposed_capacity)
 
-    # The same cascade model the runner used for the baseline this is
-    # differenced against (`runner.py:146` passes the same setting). Letting it
-    # default to False made `failures_prevented` subtract a load-overload-only
-    # rerun from a dependency-aware baseline, so a capacity upgrade appeared to
-    # rescue assets that had in fact lost every feeder -- capacity cannot help
-    # a severed dependency, but with the semantics off the engine could not see
-    # that and scored the candidate as a save.
-    waves_c, _, eff_after_c, _raw_pop_c, _ = run_cascade(
+    scored = _score_candidate(
         G_cand,
+        G_baseline,
         initial_failures,
-        enforce_edge_semantics=settings.enforce_edge_semantics,
+        baseline_failed_count,
+        baseline_raw_pop,
+        baseline_efficiency,
+        baseline_failed_hospitals,
     )
-    cand_failed_count = sum(len(w.get("failed_node_ids", [])) for w in waves_c)
-
-    all_failed_cand: set[str] = set()
-    for w in waves_c:
-        all_failed_cand.update(str(nid) for nid in w.get("failed_node_ids", []))
-
-    # Both sides of this subtraction must come from the same computation.
-    # The candidate figure used to be run_cascade's naive double-counting sum
-    # while the baseline came from calculate_population_impact, so
-    # "population saved" was a difference between two different quantities.
-    failures_prevented = baseline_failed_count - cand_failed_count
-    cand_pop = calculate_population_impact(all_failed_cand, G_baseline)["raw_population_affected"]
-    raw_population_saved = baseline_raw_pop - cand_pop
-    efficiency_gain = round(eff_after_c - baseline_efficiency, 5)
-
-    protects_critical = False
-    if baseline_failed_hospitals:
-        survived = baseline_failed_hospitals - all_failed_cand
-        protects_critical = len(survived) > 0
-
+    scored.pop("candidate_failed_ids")
     return {
         "intervention_type": "upgrade_node",
         "node_id": node_id,
         "target_node_id": None,
         "proposed_capacity": proposed_capacity,
-        "failures_prevented": failures_prevented,
-        "raw_population_saved": raw_population_saved,
-        "efficiency_gain": efficiency_gain,
-        "protects_critical_services": protects_critical,
-        "candidate_failed_count": cand_failed_count,
-        "candidate_efficiency": eff_after_c,
+        **scored,
     }
 
 
@@ -366,15 +396,38 @@ def _is_hospital(node_data: dict[str, Any]) -> bool:
     return node_type == "hospital" or "hospital" in name or "hospital" in display_name
 
 
+def _load_scenario_modifications(simulation: Any, db: Session) -> list[dict[str, Any]]:
+    """The modifications the run applied, or [] for a run on the unmodified network."""
+    scenario_id = getattr(simulation, "scenario_id", None)
+    if not scenario_id:
+        return []
+    scenario = db.query(Scenario).filter(Scenario.id == scenario_id).first()
+    if scenario is None:
+        # The FK is ON DELETE SET NULL, so this is only a race with a delete.
+        logger.warning("scenario %s for simulation %s no longer exists", scenario_id, simulation.id)
+        return []
+    return [dict(mod) for mod in (scenario.modifications or [])]
+
+
 def get_recommendations(
     simulation: SimulationResult | Any,
     db: Session | None = None,
     G_baseline: nx.DiGraph | None = None,
     limit: int = 10,
+    scenario_modifications: list[dict[str, Any]] | None = None,
 ) -> list[MitigationRecommendation]:
     """
     Main entry point to generate deterministic mitigation recommendations.
-    
+
+    ``G_baseline`` is the *unmodified* network graph; it is built from ``db``
+    when omitted. When the simulation was a scenario run, candidates are scored
+    against the network *with that scenario's modifications applied* -- the
+    topology the run actually used -- and every ``scenario_payload`` carries
+    those modifications ahead of its own, so applying a recommendation stacks
+    on the intervention already in place instead of silently replacing it.
+    The modifications are read from the run's scenario when ``db`` is given, or
+    passed explicitly as ``scenario_modifications``.
+
     Guarantees:
     1. Returns empty list if simulation has zero secondary cascade casualties.
     2. Generates both upgrade_node and add_edge redundancy candidates.
@@ -396,11 +449,27 @@ def get_recommendations(
     if len(waves) <= 1 or total_failed <= len(initial_failures):
         return []
 
-    # Obtain baseline NetworkX DiGraph
+    # Obtain the network graph, then the topology the run actually used.
     if G_baseline is None:
         if db is None:
             raise ValueError("Either db or G_baseline must be provided.")
         G_baseline = build_network_graph(simulation.network_id, db)
+    if scenario_modifications is None:
+        scenario_modifications = _load_scenario_modifications(simulation, db) if db is not None else []
+    base_modifications = [dict(mod) for mod in scenario_modifications]
+
+    if len(base_modifications) >= settings.max_scenario_modifications:
+        # Every candidate adds one modification to the payload, which
+        # POST /scenarios would then reject as too long. Recommending actions
+        # that cannot be applied is worse than recommending none.
+        logger.info(
+            "simulation %s already carries %d modification(s); no room to recommend another",
+            getattr(simulation, "id", "?"),
+            len(base_modifications),
+        )
+        return []
+    if base_modifications:
+        G_baseline = apply_scenario_modifications(G_baseline, base_modifications)
 
     # Compute baseline metrics
     baseline_failed_count = total_failed
@@ -408,9 +477,7 @@ def get_recommendations(
     if baseline_efficiency is None:
         baseline_efficiency = calculate_global_efficiency(G_baseline)
 
-    all_failed_ids: set[str] = set()
-    for w in waves:
-        all_failed_ids.update(str(nid) for nid in w.get("failed_node_ids", []))
+    all_failed_ids = _failed_ids(waves)
     pop_impact = calculate_population_impact(all_failed_ids, G_baseline)
     baseline_raw_pop = pop_impact["raw_population_affected"]
 
@@ -419,6 +486,17 @@ def get_recommendations(
         nid for nid in all_failed_ids
         if nid in G_baseline.nodes and _is_hospital(G_baseline.nodes[nid])
     }
+
+    def score(G_cand: nx.DiGraph) -> dict[str, Any]:
+        return _score_candidate(
+            G_cand,
+            G_baseline,
+            initial_failures,
+            baseline_failed_count,
+            baseline_raw_pop,
+            baseline_efficiency,
+            baseline_failed_hospitals,
+        )
 
     # Which services each asset cannot operate without, and which assets still
     # have a continuous supply path to a working source. Both are computed once
@@ -436,19 +514,19 @@ def get_recommendations(
         orig_cap = float(G_baseline.nodes[nid].get("capacity", 100.0))
         proposed_cap = round(orig_cap * 2.0, 2)
 
-        scored = resimulate_candidate(
-            G_baseline=G_baseline,
-            initial_failures=initial_failures,
-            node_id=nid,
-            proposed_capacity=proposed_cap,
-            baseline_failed_count=baseline_failed_count,
-            baseline_raw_pop=baseline_raw_pop,
-            baseline_efficiency=baseline_efficiency,
-            baseline_failed_hospitals=baseline_failed_hospitals,
-        )
+        G_cand = G_baseline.copy()
+        G_cand.nodes[nid]["capacity"] = proposed_cap
+        scored = score(G_cand)
+        scored.pop("candidate_failed_ids")
 
         if scored["failures_prevented"] > 0 or scored["raw_population_saved"] > 0:
-            scored_candidates.append(scored)
+            scored_candidates.append({
+                "intervention_type": "upgrade_node",
+                "node_id": nid,
+                "target_node_id": None,
+                "proposed_capacity": proposed_cap,
+                **scored,
+            })
 
     # --- 2. Candidate Generation: Redundancy Connections (add_edge) ---
     wave1_failed_nodes: list[str] = []
@@ -509,46 +587,23 @@ def get_recommendations(
 
                 G_cand = G_baseline.copy()
                 G_cand.add_edge(src_id, succ, weight=weight, capacity=capacity, edge_type=edge_type)
-
-                # Same model as the baseline, for the reason at the upgrade_node
-                # call site above.
-                waves_c, _, eff_after_c, _raw_pop_c, _ = run_cascade(
-                    G_cand,
-                    initial_failures,
-                    enforce_edge_semantics=settings.enforce_edge_semantics,
-                )
-                cand_failed_count = sum(len(w.get("failed_node_ids", [])) for w in waves_c)
-
-                all_failed_cand: set[str] = set()
-                for w in waves_c:
-                    all_failed_cand.update(str(nid) for nid in w.get("failed_node_ids", []))
-
-                failures_prevented = baseline_failed_count - cand_failed_count
-                cand_pop = calculate_population_impact(
-                    all_failed_cand, G_baseline
-                )["raw_population_affected"]
-                raw_population_saved = baseline_raw_pop - cand_pop
-                efficiency_gain = round(eff_after_c - baseline_efficiency, 5)
+                scored = score(G_cand)
+                all_failed_cand = scored.pop("candidate_failed_ids")
 
                 # Credit downstream recovery only when the target genuinely ends
                 # up on a continuous surviving path back to a working source.
                 cand_reach = surviving_source_reach(G_cand, all_failed_cand)
                 restores_supply_path = succ in cand_reach and succ not in all_failed_cand
 
-                protects_critical = False
-                if baseline_failed_hospitals:
-                    survived = baseline_failed_hospitals - all_failed_cand
-                    protects_critical = len(survived) > 0
-
                 # A candidate that makes the cascade worse is never a mitigation,
                 # whatever it does for efficiency. This guard used to be absent,
                 # so an edge could be accepted and reported with a negative
                 # failures_prevented.
-                if failures_prevented >= 0 and (
-                    failures_prevented > 0
-                    or raw_population_saved > 0
-                    or efficiency_gain > 0
-                    or protects_critical
+                if scored["failures_prevented"] >= 0 and (
+                    scored["failures_prevented"] > 0
+                    or scored["raw_population_saved"] > 0
+                    or scored["efficiency_gain"] > 0
+                    or scored["protects_critical_services"]
                 ):
                     scored_candidates.append({
                         "intervention_type": "add_edge",
@@ -558,13 +613,8 @@ def get_recommendations(
                         "edge_type": edge_type,
                         "weight": weight,
                         "capacity": capacity,
-                        "failures_prevented": failures_prevented,
-                        "raw_population_saved": raw_population_saved,
-                        "efficiency_gain": efficiency_gain,
-                        "protects_critical_services": protects_critical,
                         "restores_supply_path": restores_supply_path,
-                        "candidate_failed_count": cand_failed_count,
-                        "candidate_efficiency": eff_after_c,
+                        **scored,
                     })
 
     # --- 3. Deterministic Ranking ---
@@ -616,7 +666,7 @@ def get_recommendations(
                     f"Projected to prevent {failures_prevented} failures, save {raw_population_saved:,} "
                     f"affected population, and improve efficiency by +{efficiency_gain:.4f}."
                 )[:2000],
-                "modifications": [
+                "modifications": [dict(mod) for mod in base_modifications] + [
                     {
                         "type": "upgrade_node",
                         "node_id": node_id_str,
@@ -688,7 +738,7 @@ def get_recommendations(
                     f"Projected to prevent {failures_prevented} failures, save {raw_population_saved:,} "
                     f"affected population, and improve efficiency by +{efficiency_gain:.4f}."
                 )[:2000],
-                "modifications": [
+                "modifications": [dict(mod) for mod in base_modifications] + [
                     {
                         "type": "add_edge",
                         "source": src_str,

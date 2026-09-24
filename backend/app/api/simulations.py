@@ -58,16 +58,26 @@ def create_simulation(
         )
         if not scenario:
             raise HTTPException(status_code=404, detail="Scenario not found for this network")
-        
+        # The run becomes the scenario's cached result, and /scenarios/compare
+        # pairs that result with a baseline by the *scenario's* failures. A run
+        # started from different failures would be compared as if it had not
+        # been, so the request must replay the scenario's own initial event.
+        if requested_ids != {str(node_id) for node_id in scenario.initial_failures}:
+            raise HTTPException(
+                status_code=422,
+                detail="initial_failures must match the scenario's initial_failures",
+            )
+
     sim = SimulationResult(
         network_id=req.network_id,
+        scenario_id=req.scenario_id,
         initial_failures=[str(uid) for uid in req.initial_failures],
-        status="pending"
+        status="pending",
     )
     db.add(sim)
     db.commit()
     db.refresh(sim)
-    
+
     # Dispatch after the durable row exists. A dispatch failure is recorded so
     # callers never poll a permanently pending job.
     try:
@@ -83,9 +93,8 @@ def create_simulation(
         sim.error_message = "Simulation dispatch failed"
         db.commit()
         raise HTTPException(status_code=503, detail="Simulation queue unavailable")
-    
-    return sim
 
+    return sim
 
 
 @router.get("/{sim_id}", response_model=SimulationResponse)
