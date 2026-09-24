@@ -36,22 +36,6 @@ logger = logging.getLogger(__name__)
 TRANSIENT_INFRA_ERRORS = (OperationalError, RedisConnectionError, RedisTimeoutError)
 
 
-def _setting(name: str, default):
-    """Read a setting defensively.
-
-    The test suite replaces ``app.config`` with a MagicMock, so a bare
-    ``settings.x`` returns a truthy Mock rather than a value. Anything read on
-    a path the tests exercise goes through here, which coerces to the expected
-    type and falls back to the documented default.
-    """
-    value = getattr(settings, name, default)
-    if isinstance(default, bool):
-        return value if isinstance(value, bool) else default
-    if isinstance(default, int):
-        return value if isinstance(value, int) else default
-    return value if isinstance(value, type(default)) else default
-
-
 def apply_scenario_modifications(
     G: nx.DiGraph,
     modifications: list[dict],
@@ -185,9 +169,9 @@ def run_simulation_task(
             waves, eff_before, eff_after, pop_affected, stabilized = run_cascade(
                 G_run,
                 initial_failures,
-                max_waves=_setting("max_cascade_waves", 50),
+                max_waves=settings.max_cascade_waves,
                 on_wave_completed=on_wave,
-                enforce_edge_semantics=_setting("enforce_edge_semantics", True),
+                enforce_edge_semantics=settings.enforce_edge_semantics,
             )
 
         # 5. Population impact, deduplicated across overlapping service areas.

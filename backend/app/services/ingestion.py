@@ -28,17 +28,6 @@ CENTRALITY_CACHE_METRICS = ("betweenness", "pagerank")
 logger = logging.getLogger(__name__)
 
 
-def _configured_source() -> str:
-    """The configured topology source, read defensively.
-
-    The test suite replaces ``app.config`` with a MagicMock, so a bare attribute
-    read yields a truthy Mock rather than a string. Coercing here keeps the
-    synthetic default in any environment that has not explicitly opted in.
-    """
-    value = getattr(settings, "topology_source", "synthetic")
-    return value if value in {"synthetic", "osm"} else "synthetic"
-
-
 def resolve_seed_dir(source: str | None = None) -> Path:
     """Return the directory to ingest the baseline topology from.
 
@@ -52,19 +41,19 @@ def resolve_seed_dir(source: str | None = None) -> Path:
     Motter-Lai resimulations run against real-world geometry without a second
     code path.
     """
-    resolved = source or _configured_source()
+    resolved = source or settings.topology_source
     if resolved != "osm":
         return SEED_DIR
 
     from app.services.osm_ingestion import download_osm_road_data
 
-    cache_dir = Path(str(getattr(settings, "osm_cache_dir", "/data/osm")))
+    cache_dir = Path(settings.osm_cache_dir)
     if (cache_dir / "nodes.geojson").exists() and (cache_dir / "edges.json").exists():
         logger.info("using cached OSM topology at %s", cache_dir)
         return cache_dir
 
-    place = str(getattr(settings, "osm_place", "Manipal, Karnataka, India"))
-    network_type = str(getattr(settings, "osm_network_type", "drive"))
+    place = settings.osm_place
+    network_type = settings.osm_network_type
     logger.info("downloading OSM topology for %r into %s", place, cache_dir)
     download_osm_road_data(place, cache_dir, network_type)
     return cache_dir

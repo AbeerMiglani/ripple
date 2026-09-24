@@ -122,19 +122,11 @@ def create_scenario(
     }
     referenced_ids = {str(node_id) for node_id in req.initial_failures}
     for modification in req.modifications:
+        # The discriminated union guarantees one of these two models.
         if isinstance(modification, AddEdgeModification):
             referenced_ids.update({str(modification.source), str(modification.target)})
-        elif isinstance(modification, UpgradeNodeModification):
+        else:
             referenced_ids.add(str(modification.node_id))
-        elif getattr(modification, "type", None) == "add_edge":
-            referenced_ids.update({str(modification.source), str(modification.target)})
-        elif getattr(modification, "type", None) == "upgrade_node":
-            referenced_ids.add(str(modification.node_id))
-        elif isinstance(modification, dict):
-            if modification.get("type") == "add_edge":
-                referenced_ids.update({str(modification["source"]), str(modification["target"])})
-            elif modification.get("type") == "upgrade_node":
-                referenced_ids.add(str(modification["node_id"]))
 
     if referenced_ids - known_ids:
         raise HTTPException(status_code=422, detail="Scenario references nodes outside this network")
@@ -145,8 +137,6 @@ def create_scenario(
         description=req.description,
         modifications=[
             modification.model_dump(mode="json", exclude_none=True)
-            if hasattr(modification, "model_dump")
-            else modification
             for modification in req.modifications
         ],
         initial_failures=[str(uid) for uid in req.initial_failures]

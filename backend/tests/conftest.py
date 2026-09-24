@@ -110,15 +110,55 @@ if _need_mock("pydantic"):
     pyd.ConfigDict = lambda **kw: kw
     pyd.UUID4 = uuid.UUID
 
-if _need_mock("pydantic_settings"):
+#: Captured before the shim below installs a stand-in, after which the module
+#: would look importable.
+LEAN_SETTINGS = _need_mock("pydantic_settings")
+if LEAN_SETTINGS:
     _make_mock_module("pydantic_settings")
 
+#: The documented defaults of app.config.Settings, for a lean environment where
+#: pydantic_settings (and so the real Settings class) cannot be imported.
+#: test_conftest_settings.py pins these against the real class whenever it is
+#: importable, so the two cannot drift apart.
+LEAN_SETTINGS_DEFAULTS: dict = {
+    "environment": "test",
+    "database_url": "postgresql+psycopg2://ripple:ripple_dev@localhost:5432/ripple",
+    "neo4j_uri": "bolt://localhost:7687",
+    "neo4j_user": "neo4j",
+    "neo4j_password": "ripple_dev_neo4j",
+    "redis_url": "redis://:ripple_dev@localhost:6379/0",
+    "celery_broker_url": "redis://:ripple_dev@localhost:6379/0",
+    "celery_result_backend": "redis://:ripple_dev@localhost:6379/1",
+    "cors_origins": ["http://localhost:5173", "http://localhost:3000"],
+    "api_key_auth_enabled": False,
+    "api_keys": {},
+    "rate_limit_per_minute": 60,
+    "max_initial_failures": 25,
+    "max_scenario_modifications": 20,
+    "centrality_cache_ttl_seconds": 300,
+    "max_cascade_waves": 50,
+    "enforce_edge_semantics": True,
+    "topology_source": "synthetic",
+    "osm_place": "Manipal, Karnataka, India",
+    "osm_network_type": "drive",
+    "osm_cache_dir": "/data/osm",
+}
+
+# Real settings, not a MagicMock. A Mock answers every attribute with a truthy
+# Mock, which forced production modules to wrap each settings read in a
+# type-checking helper just so the suite could run. The real class has safe
+# development defaults; it is built with the environment pinned to "test" and
+# no .env file, so a developer's local configuration cannot leak into results.
 if "app.config" not in sys.modules:
-    mock_cfg = _make_mock_module("app.config")
-    mock_settings = MagicMock()
-    mock_settings.max_scenario_modifications = 50
-    mock_settings.max_initial_failures = 10
-    mock_cfg.settings = mock_settings
+    if LEAN_SETTINGS:
+        from types import SimpleNamespace
+
+        lean_cfg = _make_mock_module("app.config")
+        lean_cfg.settings = SimpleNamespace(**LEAN_SETTINGS_DEFAULTS)
+    else:
+        import app.config as _real_config
+
+        _real_config.settings = _real_config.Settings(_env_file=None, environment="test")
 
 # ---------------------------------------------------------------------------
 # fastapi

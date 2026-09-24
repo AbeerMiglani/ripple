@@ -28,11 +28,6 @@ from app.config import settings
 DEFAULT_STUDY_AREA_CAP = 65_000
 
 
-def _max_initial_failures() -> int:
-    value = getattr(settings, "max_initial_failures", 25)
-    return value if isinstance(value, int) else 25
-
-
 class PopulationImpactResult(BaseModel):
     """The full population picture for one run.
 
@@ -72,7 +67,7 @@ class WaveSchema(BaseModel):
 
 class SimulationCreate(BaseModel):
     network_id: UUID4
-    initial_failures: list[UUID4] = Field(min_length=1, max_length=_max_initial_failures())
+    initial_failures: list[UUID4] = Field(min_length=1, max_length=settings.max_initial_failures)
     scenario_id: Optional[UUID4] = None
 
     @field_validator("initial_failures")

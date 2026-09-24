@@ -1,9 +1,10 @@
 """Regression coverage for the merged P2 Phase 1 frontend fixes.
 
-There is no JavaScript test runner in this repository, and adding one is out of
-scope. The established precedent (see the frontend contract tests in
-test_recommendations_stress.py) is to assert these contracts by reading the
-sources from Python, which is what this module does.
+These are structural contracts over the frontend sources (which components are
+mounted where, who may touch localStorage), so they are asserted by reading the
+sources from Python -- the precedent set by the frontend contract tests in
+test_recommendations_stress.py. Behavioral frontend logic is covered by the
+vitest suite under frontend/src instead.
 
 Every assertion runs against source with comments stripped, and render sites are
 counted as actual JSX element openings rather than bare name occurrences, so an
