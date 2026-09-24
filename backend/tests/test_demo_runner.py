@@ -373,3 +373,17 @@ def test_vite_proxy_target_defaults_to_the_manual_workflow():
     assert 'apiTarget.replace(/^http/, "ws")' in vite_config
     assert "target: apiTarget" in vite_config
     assert "target: wsTarget" in vite_config
+
+
+def test_every_published_port_binds_to_loopback():
+    """Auth is off by default, so any port on 0.0.0.0 exposes the stack to the LAN.
+
+    Compose publishes "HOST:CONTAINER" on every interface unless the host side
+    names an address.
+    """
+    compose_text = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    published = re.findall(r"^\s*ports:\s*\n((?:\s*-\s*\S+\s*\n)+)", compose_text, re.MULTILINE)
+    mappings = [m.strip().lstrip("-").strip() for block in published for m in block.strip().splitlines()]
+    assert mappings, "no published ports found; did the compose layout change?"
+    exposed = [m for m in mappings if not m.startswith("127.0.0.1:")]
+    assert not exposed, f"ports published on all interfaces: {exposed}"

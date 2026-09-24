@@ -66,8 +66,12 @@ services:
       dockerfile: Dockerfile
     container_name: ripple-backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    # Loopback only, like the datastores above. API-key auth is off by default
+    # (every caller is an admin), so publishing on all interfaces handed the
+    # whole API to anyone on the same network. The frontend container still
+    # reaches it as http://backend:8000 over the Compose network.
     ports:
-    - 8000:8000
+    - 127.0.0.1:8000:8000
     volumes:
     - ./backend:/app
     - ./data:/data
@@ -161,7 +165,7 @@ services:
     profiles:
     - demo
     ports:
-    - 5173:5173
+    - 127.0.0.1:5173:5173
     environment:
       # Inside the container the API is the `backend` service, not localhost.
       VITE_API_TARGET: http://backend:8000
