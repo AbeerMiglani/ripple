@@ -28,9 +28,17 @@ context.
 - **Fonts:** Latin, Latin Extended and General Punctuation, plus Kannada for
   local names that have no English form. Labels prefer English (`lang: "en"`).
 
-The seed network is **synthetic**, so its junctions do not line up with the
-real streets now drawn underneath it. Ingesting the real road network
-(`TOPOLOGY_SOURCE=osm`, see `.env.example`) is the way to align the two.
+The seed network is **synthetic**, so its road junctions do not line up with
+the real streets drawn underneath it. The map therefore hides healthy road
+junctions and road links by default (Layers → Road junctions). Any junction
+that fails, is restored or is selected is still drawn; see
+`frontend/src/map/roadVisibility.ts`.
+
+`TOPOLOGY_SOURCE=osm` does **not** align the two. It replaces the whole
+network with a roads-only graph (no substations, water stations, hospitals or
+towers, with zero load and zero population), on which almost nothing cascades.
+Aligning properly would mean generating the seed's road layer from OSM and
+keeping the synthetic utility layer on top of it.
 
 ## Regenerating
 
