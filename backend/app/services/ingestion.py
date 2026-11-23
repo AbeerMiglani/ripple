@@ -175,6 +175,10 @@ if __name__ == "__main__":
     import argparse
 
     from app.db.postgres import SessionLocal
+    from app.logging_config import configure_logging
+
+    # Report the outcome (seeded, or already there) in deploy and build logs.
+    configure_logging()
 
     parser = argparse.ArgumentParser(description="Ingest the Ripple baseline network")
     parser.add_argument("--force", action="store_true", help="replace the existing named demo network")
