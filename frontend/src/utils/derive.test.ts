@@ -120,4 +120,15 @@ describe("buildExplanation", () => {
     expect(verified?.text).toMatch(/^Not yet run/);
     expect(verified?.text).toContain("−2 failures");
   });
+
+  it("does not print a negative zero when the top candidate prevents no failures", () => {
+    const entries = buildExplanation({
+      result: result({ total_failed: 3, waves: [wave({ wave: 0 })] }),
+      nodes,
+      topRecommendation: { rank: 1, failures_prevented: 0 },
+    });
+    const verified = entries.find((e) => e.field === "verified");
+    expect(verified?.text).toContain("projects no fewer failures");
+    expect(verified?.text).not.toContain("−0");
+  });
 });

@@ -126,7 +126,11 @@ export function buildExplanation(params: {
       category: "Verified rerun",
       color: "var(--rp-mute)",
       field: "verified",
-      text: `Not yet run. The rank-${topRecommendation.rank} candidate projects −${topRecommendation.failures_prevented} failures from an in-memory resimulation of the candidate graph; nothing is recorded as verified until the rerun is executed.`,
+      text: `Not yet run. The rank-${topRecommendation.rank} candidate projects ${
+        topRecommendation.failures_prevented > 0
+          ? `−${topRecommendation.failures_prevented} failures`
+          : "no fewer failures"
+      } from an in-memory resimulation of the candidate graph; nothing is recorded as verified until the rerun is executed.`,
     });
   }
 
