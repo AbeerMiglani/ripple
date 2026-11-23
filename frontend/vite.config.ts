@@ -15,6 +15,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
+  worker: {
+    // MapLibre starts its worker as an ES module (see MapView.tsx).
+    format: "es",
+  },
   optimizeDeps: {
     // maplibre-gl ships a separate worker bundle that it loads at runtime via
     // `new URL(..., import.meta.url)`. Vite's dep pre-bundler only sees the
