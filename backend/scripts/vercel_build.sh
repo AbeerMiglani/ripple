@@ -7,8 +7,9 @@
 #   2. Seed the demo network if it is not there yet. An existing network is
 #      left alone, so its id (and every saved run that refers to it) survives
 #      redeploys.
-#   3. Build the frontend into public/, which Vercel serves from its CDN at
-#      the site root, next to the FastAPI function serving /api.
+#   3. Build the frontend into public/. The app serves it at the site root
+#      below the API routes (app.main.serve_frontend), and Vercel promotes
+#      those files to its CDN.
 #
 # Needs DATABASE_URL (Neon sets it) and the source outside backend/ (the
 # frontend and data/seed), which Vercel includes in the build by default.

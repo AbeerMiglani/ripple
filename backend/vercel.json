@@ -4,7 +4,7 @@
   "functions": {
     "app/main.py": {
       "maxDuration": 60,
-      "excludeFiles": "{public/**,tests/**,native/**,scripts/**,ripple_backend.egg-info/**,**/__pycache__/**}"
+      "excludeFiles": "{tests/**,native/**,scripts/**,ripple_backend.egg-info/**,**/__pycache__/**}"
     }
   },
   "crons": [

@@ -87,3 +87,60 @@ def test_health_reports_a_disabled_neo4j_without_degrading():
         "status": "ok",
         "services": {"postgres": "ok", "neo4j": "disabled", "redis": "ok"},
     }
+
+
+_FRONTEND_SCRIPT = """
+import json, pathlib, sys, tempfile
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from app.main import serve_frontend
+
+app = FastAPI()
+@app.get("/api/thing")
+def thing():
+    return {"api": True}
+
+with tempfile.TemporaryDirectory() as tmp:
+    root = pathlib.Path(tmp)
+    assert serve_frontend(app, root) is False  # no build: nothing registered
+    (root / "assets").mkdir()
+    (root / "index.html").write_text("<html>ripple</html>")
+    (root / "assets" / "app.js").write_text("console.log(1)")
+    (root / "tiles.bin").write_bytes(bytes(range(256)))
+    assert serve_frontend(app, root) is True
+    client = TestClient(app)
+    out = {
+        "index": [client.get("/").status_code, client.get("/").text],
+        "asset": client.get("/assets/app.js").status_code,
+        "range": [client.get("/tiles.bin", headers={"Range": "bytes=0-9"}).status_code,
+                  len(client.get("/tiles.bin", headers={"Range": "bytes=0-9"}).content)],
+        "api": client.get("/api/thing").json(),
+        "unknown_api": [client.get("/api/missing").status_code,
+                        client.get("/api/missing").headers["content-type"]],
+    }
+print(json.dumps(out))
+"""
+
+
+def test_the_frontend_build_is_served_below_the_api():
+    """The Vercel deployment serves the built frontend from the app itself
+    (Vercel promotes it to its CDN). API routes win, a missing path is still a
+    JSON 404 rather than the page, and the map tiles honour Range requests."""
+    result = subprocess.run(
+        [sys.executable, "-c", _FRONTEND_SCRIPT],
+        cwd=BACKEND_DIR,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0:
+        if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
+            pytest.skip(f"full backend dependencies not importable:\n{result.stderr}")
+        raise AssertionError(f"frontend subprocess failed:\n{result.stderr}{result.stdout}")
+
+    out = json.loads(result.stdout.strip().splitlines()[-1])
+    assert out["index"] == [200, "<html>ripple</html>"]
+    assert out["asset"] == 200
+    assert out["range"] == [206, 10]
+    assert out["api"] == {"api": True}
+    assert out["unknown_api"] == [404, "application/json"]

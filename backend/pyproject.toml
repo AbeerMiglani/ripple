@@ -9,7 +9,8 @@ description = "Ripple — Cascading Failure Simulation Platform (Backend)"
 requires-python = ">=3.11"
 dependencies = [
     # Web framework
-    "fastapi>=0.115,<1",
+    # 0.165 adds app.frontend(), which serves the built frontend on Vercel.
+    "fastapi>=0.165,<1",
     "uvicorn[standard]>=0.30,<1",
     "websockets>=12,<14",
     # Database — PostgreSQL + PostGIS

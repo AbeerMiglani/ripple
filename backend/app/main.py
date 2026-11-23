@@ -6,6 +6,7 @@ Entry point: uvicorn app.main:app --reload
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -131,3 +132,25 @@ def health_check():
     if not healthy:
         raise HTTPException(status_code=503, detail=payload)
     return payload
+
+
+#: The built frontend, when there is one: backend/scripts/vercel_build.sh
+#: writes it here for the Vercel deployment. Served as low-priority routes, so
+#: every API route above still matches first. On Vercel, files served this way
+#: are promoted to the CDN at build time; the same directory left for Vercel to
+#: pick up as plain public/ files was not served at all. The Docker stack and
+#: local development serve the frontend from Vite instead and have no build.
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "public"
+
+
+def serve_frontend(target: FastAPI, directory: Path) -> bool:
+    """Serve the frontend build in ``directory`` at "/", if there is one."""
+    if not (directory / "index.html").is_file():
+        return False
+    # No fallback: the app is the one page at "/", and an unknown path (an
+    # unknown /api route above all) should stay a 404, not turn into the page.
+    target.frontend("/", directory=directory, fallback=None)
+    return True
+
+
+serve_frontend(app, FRONTEND_DIR)
