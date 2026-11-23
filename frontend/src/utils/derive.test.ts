@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CascadeWave, InfraNode, SimulationResult } from "../types";
-import { criticalServicesOffline, failedNodeIdsForResult } from "./derive";
+import { buildExplanation, criticalServicesOffline, failedNodeIdsForResult } from "./derive";
 
 function wave(partial: Partial<CascadeWave> & { wave: number }): CascadeWave {
   return { failed_node_ids: [], ...partial };
@@ -93,5 +93,31 @@ describe("criticalServicesOffline", () => {
 
   it("returns 0 for an empty failed set", () => {
     expect(criticalServicesOffline(nodes, new Set())).toBe(0);
+  });
+});
+
+describe("buildExplanation", () => {
+  const nodes = [node({ id: "h", node_type: "hospital" })];
+
+  it("compares a verified rerun against the baseline, not against itself", () => {
+    const baseline = result({ id: "base", total_failed: 7, waves: [wave({ wave: 0 })] });
+    const scenario = result({ id: "scen", total_failed: 5, waves: [wave({ wave: 0 })] });
+    const [simulation] = buildExplanation({
+      result: scenario,
+      nodes,
+      verifiedComparison: { baseline, scenario },
+    });
+    expect(simulation.text).toContain("5 assets failed (was 7 before the intervention)");
+  });
+
+  it("says the top candidate has not been rerun yet when there is no comparison", () => {
+    const entries = buildExplanation({
+      result: result({ total_failed: 3, waves: [wave({ wave: 0 })] }),
+      nodes,
+      topRecommendation: { rank: 1, failures_prevented: 2 },
+    });
+    const verified = entries.find((e) => e.field === "verified");
+    expect(verified?.text).toMatch(/^Not yet run/);
+    expect(verified?.text).toContain("−2 failures");
   });
 });

@@ -120,8 +120,28 @@ export default function GraphView({ nodes, edges }: GraphViewProps) {
       setHoveredNode(null);
     });
 
+    // Cytoscape sizes its canvas once and only re-measures on window resize.
+    // The graph lives in a pane the user can drag wider or narrower, so watch
+    // the container itself; otherwise the canvas stays at its old size,
+    // clipped or with dead space, and clicks land on the wrong nodes.
+    const container = containerRef.current;
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const cy = cyRef.current;
+        if (!cy) return;
+        cy.resize();
+        cy.fit(undefined, 20);
+      });
+    });
+    observer.observe(container);
+
     return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
       cyRef.current?.destroy();
+      cyRef.current = null;
     };
   }, [toggleNodeSelection, setHoveredNode]);
 
@@ -156,7 +176,9 @@ export default function GraphView({ nodes, edges }: GraphViewProps) {
     cy.layout({ name: "concentric", animate: false }).run();
   }, [nodes, edges]);
 
-  // Update classes for selection, hover, and failure states
+  // Update classes for selection, hover, and failure states. Also re-run when
+  // the topology changes: rebuilding the elements drops their classes, which
+  // left a failed node drawn as healthy until the next state change.
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
@@ -170,7 +192,7 @@ export default function GraphView({ nodes, edges }: GraphViewProps) {
       n.toggleClass("redundancy", mode === "add_redundancy" && redundancyNodes.includes(id));
       n.toggleClass("hovered", id === hoveredNodeId);
     });
-  }, [selectedNodeIds, hoveredNodeId, failedNodeIds, restoredNodeIds, savedNodeIds, mode, redundancyNodes]);
+  }, [nodes, edges, selectedNodeIds, hoveredNodeId, failedNodeIds, restoredNodeIds, savedNodeIds, mode, redundancyNodes]);
 
   return <div ref={containerRef} style={{ width: "100%", height: "100%", background: "var(--rp-bg)" }} />;
 }

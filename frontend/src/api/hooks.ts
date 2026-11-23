@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CentralityScore, InfraEdge, InfraNode, MitigationRecommendation, Modification, SimulationResult } from "../types";
 import { apiFetch, apiPost } from "./client";
 
@@ -40,10 +40,21 @@ export function useCentrality(networkId: string | null, metric: "betweenness" | 
 // Simulations
 // ---------------------------------------------------------------------------
 
+/** Completed and failed runs never change again; queued and running ones do. */
+export function isSettled(sim: Pick<SimulationResult, "status"> | undefined): boolean {
+  return sim?.status === "completed" || sim?.status === "failed";
+}
+
 export function useRunSimulation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { network_id: string; initial_failures: string[]; scenario_id?: string }) =>
       apiPost<SimulationResult>("/api/simulations", params, "Failed to start simulation"),
+    // A server that runs simulations inline answers the POST with the finished
+    // run. Cache it, so useSimulationResult has it without another request.
+    onSuccess: (sim) => {
+      if (isSettled(sim)) queryClient.setQueryData(["simulations", sim.id], sim);
+    },
   });
 }
 
@@ -52,15 +63,10 @@ export function useSimulationResult(simId: string | null) {
     queryKey: ["simulations", simId],
     queryFn: () => apiFetch<SimulationResult>(`/api/simulations/${simId}`, "Failed to fetch simulation result"),
     enabled: !!simId,
-    // Poll every 2 seconds if not completed/failed
-    refetchInterval: (query) => {
-      const state = query.state.data;
-      if (state && (state.status === "completed" || state.status === "failed")) {
-        return false;
-      }
-
-      return 2000;
-    },
+    // A settled run is final, so a cached one is never refetched.
+    staleTime: (query) => (isSettled(query.state.data) ? Infinity : 0),
+    // Poll every 2 seconds until the run settles.
+    refetchInterval: (query) => (isSettled(query.state.data) ? false : 2000),
   });
 }
 
@@ -80,17 +86,20 @@ const SIMULATION_POLL_INTERVAL_MS = 2000;
  * result inline (e.g. running a recommendation's verified rerun) rather than
  * through `useSimulationResult`'s query-cache subscription.
  */
-export async function pollSimulationUntilSettled(simId: string): Promise<SimulationResult> {
+export async function pollSimulationUntilSettled(started: SimulationResult): Promise<SimulationResult> {
+  // `started` is the POST's answer: already settled when the server runs
+  // simulations inline, so there is nothing to wait for.
+  let data = started;
   const deadline = Date.now() + SIMULATION_POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, SIMULATION_POLL_INTERVAL_MS));
-    const data = await apiFetch<SimulationResult>(`/api/simulations/${simId}`, "Failed to poll simulation");
-    if (data.status === "completed" || data.status === "failed") {
-      if (data.status === "failed") throw new Error(data.error_message || "Re-simulation failed.");
-      return data;
+  while (!isSettled(data)) {
+    if (Date.now() >= deadline) {
+      throw new Error(`Re-simulation timed out after ${Math.round(SIMULATION_POLL_TIMEOUT_MS / 1000)}s.`);
     }
+    await new Promise((resolve) => setTimeout(resolve, SIMULATION_POLL_INTERVAL_MS));
+    data = await apiFetch<SimulationResult>(`/api/simulations/${started.id}`, "Failed to poll simulation");
   }
-  throw new Error(`Re-simulation timed out after ${Math.round(SIMULATION_POLL_TIMEOUT_MS / 1000)}s.`);
+  if (data.status === "failed") throw new Error(data.error_message || "Re-simulation failed.");
+  return data;
 }
 
 // ---------------------------------------------------------------------------

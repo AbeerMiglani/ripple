@@ -167,7 +167,7 @@ export default function RecommendationPanel() {
       "Failed to start simulation"
     );
 
-    const pollData = await pollSimulationUntilSettled(simData.id);
+    const pollData = await pollSimulationUntilSettled(simData);
     addSimulation(
       {
         id: pollData.id,

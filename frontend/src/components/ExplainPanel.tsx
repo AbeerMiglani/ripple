@@ -19,7 +19,7 @@
  * This is templating, not an LLM call — see utils/derive.ts.
  */
 import React, { useMemo } from "react";
-import { useSimulationStore } from "../stores/simulationStore";
+import { storedIdsForNetwork, useSimulationStore } from "../stores/simulationStore";
 import { useCompareScenarios, useMitigations, useNetworkTopology } from "../api/hooks";
 import { useUIStore } from "../stores/uiStore";
 import { buildExplanation, failedNodeIdsForResult, rawResultFields } from "../utils/derive";
@@ -47,19 +47,19 @@ function describeRootCause(
   return "Knocked out by the cascade spreading from upstream failures.";
 }
 
-export default function ExplainPanel({
-  topRecommendationRank,
-  topRecommendationPrevented,
-}: {
-  topRecommendationRank?: number;
-  topRecommendationPrevented?: number;
-}) {
+export default function ExplainPanel() {
   const result = useSimulationStore((s) => s.result);
   const networkId = useUIStore((s) => s.networkId);
   const selectedNodeIds = useUIStore((s) => s.selectedNodeIds);
   const hoveredNodeId = useUIStore((s) => s.hoveredNodeId);
-  const baselineSimulationId = useSimulationStore((s) => s.baselineSimulationId);
-  const lastAppliedScenarioId = useSimulationStore((s) => s.lastAppliedScenarioId);
+  const simulations = useSimulationStore((s) => s.simulations);
+  const scenarios = useSimulationStore((s) => s.scenarios);
+  const storedBaselineId = useSimulationStore((s) => s.baselineSimulationId);
+  const storedScenarioId = useSimulationStore((s) => s.lastAppliedScenarioId);
+  const { baselineId: baselineSimulationId, scenarioId: lastAppliedScenarioId } = storedIdsForNetwork(
+    { simulations, scenarios, baselineSimulationId: storedBaselineId, lastAppliedScenarioId: storedScenarioId },
+    networkId
+  );
   const { data: topology } = useNetworkTopology(networkId);
 
   const completedId = result && result.status === "completed" ? result.id : null;
@@ -80,16 +80,18 @@ export default function ExplainPanel({
     return buildExplanation({
       result,
       nodes: topology.nodes,
-      topRecommendation:
-        topRecommendationRank != null && topRecommendationPrevented != null
-          ? { rank: topRecommendationRank, failures_prevented: topRecommendationPrevented }
-          : null,
+      // The rank-1 candidate from the shared mitigations query. This used to
+      // come from props that nothing passed, so the "not yet run" paragraph
+      // could never appear.
+      topRecommendation: mitigations?.[0]
+        ? { rank: mitigations[0].rank, failures_prevented: mitigations[0].failures_prevented }
+        : null,
       verifiedComparison:
         comparison && comparison.scenario_result.id === result.id
           ? { baseline: comparison.baseline_result, scenario: comparison.scenario_result }
           : null,
     });
-  }, [result, topology, comparison, topRecommendationRank, topRecommendationPrevented]);
+  }, [result, topology, comparison, mitigations]);
 
   // The inspected asset: an explicit selection wins, otherwise whatever the
   // map or graph is hovering, so pointing at a node already tells you about it.

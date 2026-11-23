@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useCompareScenarios, useNetworkTopology } from "../api/hooks";
-import { useSimulationStore } from "../stores/simulationStore";
+import { isNotFound, recordExists } from "../api/client";
+import { storedIdsForNetwork, useSimulationStore } from "../stores/simulationStore";
 import { useUIStore } from "../stores/uiStore";
 import { comparablePopulation } from "../types";
 import Section from "./shared/Section";
@@ -21,8 +22,15 @@ const ScenarioCompare: React.FC = () => {
   const activeResult = useSimulationStore((s) => s.result);
   const simulations = useSimulationStore((s) => s.simulations);
   const scenarios = useSimulationStore((s) => s.scenarios);
-  const baselineSimulationId = useSimulationStore((s) => s.baselineSimulationId);
-  const lastAppliedScenarioId = useSimulationStore((s) => s.lastAppliedScenarioId);
+  const storedBaselineId = useSimulationStore((s) => s.baselineSimulationId);
+  const storedScenarioId = useSimulationStore((s) => s.lastAppliedScenarioId);
+  const forgetSimulation = useSimulationStore((s) => s.forgetSimulation);
+  const forgetScenario = useSimulationStore((s) => s.forgetScenario);
+  // Only ids from the network on screen; see storedIdsForNetwork.
+  const { baselineId: baselineSimulationId, scenarioId: lastAppliedScenarioId } = storedIdsForNetwork(
+    { simulations, scenarios, baselineSimulationId: storedBaselineId, lastAppliedScenarioId: storedScenarioId },
+    networkId
+  );
 
   const { data: topology } = useNetworkTopology(networkId);
   const nodeLookup = useNodeLookup(topology?.nodes);
@@ -86,6 +94,31 @@ const ScenarioCompare: React.FC = () => {
     activeBaselineId || null,
     activeScenarioId || null
   );
+
+  // A 404 means one side no longer exists on the server: removed by the
+  // hosted site's retention cleanup, or lost to a re-seed. Find which, and drop
+  // it from history so it stops being offered (and failing) as the default.
+  useEffect(() => {
+    if (!isNotFound(error) || !activeBaselineId || !activeScenarioId) return;
+    let cancelled = false;
+    void Promise.all([
+      recordExists(`/api/simulations/${activeBaselineId}`),
+      recordExists(`/api/scenarios/${activeScenarioId}`),
+    ]).then(([baselineExists, scenarioExists]) => {
+      if (cancelled) return;
+      if (!baselineExists) {
+        forgetSimulation(activeBaselineId);
+        setSelectedBaselineId((current) => (current === activeBaselineId ? "" : current));
+      }
+      if (!scenarioExists) {
+        forgetScenario(activeScenarioId);
+        setSelectedScenarioId((current) => (current === activeScenarioId ? "" : current));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [error, activeBaselineId, activeScenarioId, forgetSimulation, forgetScenario]);
 
   return (
     <Section title="Scenario comparison" defaultOpen={false}>
