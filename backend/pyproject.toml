@@ -59,6 +59,12 @@ entrypoint = "app.main:app"
 [tool.vercel.scripts]
 build = "bash scripts/vercel_build.sh"
 
+# Publish the frontend build (served by app.main.serve_frontend) on Vercel's
+# CDN. Vercel skips this for an app with middleware unless told to; Ripple's
+# two (CORS, request ids) do nothing a static file needs.
+[tool.vercel.fastapi.static]
+cdn = true
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100

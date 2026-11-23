@@ -7,7 +7,7 @@
 #   2. Seed the demo network if it is not there yet. An existing network is
 #      left alone, so its id (and every saved run that refers to it) survives
 #      redeploys.
-#   3. Build the frontend into public/. The app serves it at the site root
+#   3. Build the frontend into dist/. The app serves it at the site root
 #      below the API routes (app.main.serve_frontend), and Vercel promotes
 #      those files to its CDN.
 #
@@ -34,12 +34,12 @@ DATABASE_URL="${DATABASE_URL_UNPOOLED:-$DATABASE_URL}" "$PYTHON" -m alembic upgr
 echo "==> Seeding the demo network (skipped when it exists)"
 "$PYTHON" -m app.services.ingestion
 
-echo "==> Building the frontend into backend/public"
+echo "==> Building the frontend into backend/dist"
 cd "$REPO_ROOT/frontend"
 # Dev dependencies hold the compiler and bundler; a production NODE_ENV
 # would otherwise leave them out.
 npm ci --include=dev --no-audit --no-fund
 npx tsc -b
-npx vite build --outDir "$BACKEND_DIR/public" --emptyOutDir
+npx vite build --outDir "$BACKEND_DIR/dist" --emptyOutDir
 
 echo "==> Build complete"

@@ -184,7 +184,7 @@ Project setup (once):
 Each deployment runs `backend/scripts/vercel_build.sh`. It migrates the
 database, seeds the demo network if it is missing (an existing network is
 kept, so saved runs stay valid), and builds the frontend into
-`backend/public/`. A daily Vercel Cron calls `GET /api/internal/cleanup`, which
+`backend/dist/`, which the app serves at `/` and Vercel publishes on its CDN. A daily Vercel Cron calls `GET /api/internal/cleanup`, which
 deletes runs and scenarios older than `RETENTION_DAYS` (default 7). It only
 accepts the `Authorization: Bearer $CRON_SECRET` header that Vercel sends.
 

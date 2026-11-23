@@ -136,11 +136,13 @@ def health_check():
 
 #: The built frontend, when there is one: backend/scripts/vercel_build.sh
 #: writes it here for the Vercel deployment. Served as low-priority routes, so
-#: every API route above still matches first. On Vercel, files served this way
-#: are promoted to the CDN at build time; the same directory left for Vercel to
-#: pick up as plain public/ files was not served at all. The Docker stack and
-#: local development serve the frontend from Vite instead and have no build.
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "public"
+#: every API route above still matches first. On Vercel, the files are also
+#: promoted to the CDN at build time ([tool.vercel.fastapi.static] in
+#: pyproject.toml). Not "public/": Vercel kept a directory of that name out of
+#: the function and did not serve the one this build creates either. The
+#: Docker stack and local development serve the frontend from Vite instead and
+#: have no build.
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "dist"
 
 
 def serve_frontend(target: FastAPI, directory: Path) -> bool:

@@ -19,7 +19,7 @@ env/
 node_modules/
 frontend/dist/
 # The frontend build the Vercel deployment serves (backend/scripts/vercel_build.sh)
-backend/public/
+backend/dist/
 .vite/
 *.tsbuildinfo
 
