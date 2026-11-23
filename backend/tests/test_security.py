@@ -40,6 +40,8 @@ def _settings(**overrides):
         "api_keys": {OPERATOR_KEY: "operator", VIEWER_KEY: "viewer", ADMIN_KEY: "admin"},
         "environment": "development",
         "rate_limit_per_minute": 3,
+        "public_access_role": "none",
+        "client_ip_header": None,
     }
     values.update(overrides)
     return SimpleNamespace(**values)
@@ -62,14 +64,14 @@ def _request(headers=None, host="10.0.0.5", route_path="/api/simulations/{sim_id
 
 
 class _FakePipeline:
-    def __init__(self, store, fail):
-        self.store, self.fail, self.ops = store, fail, []
+    def __init__(self, store, windows, fail):
+        self.store, self.windows, self.fail, self.ops = store, windows, fail, []
 
     def incr(self, key):
         self.ops.append(("incr", key))
 
-    def expire(self, key, seconds, nx=False):
-        self.ops.append(("expire", key, seconds, nx))
+    def set(self, key, value, ex=None, nx=False):
+        self.ops.append(("set", key, value, ex, nx))
 
     def execute(self):
         if self.fail:
@@ -80,6 +82,12 @@ class _FakePipeline:
                 self.store[op[1]] = self.store.get(op[1], 0) + 1
                 results.append(self.store[op[1]])
             else:
+                _, key, value, ex, nx = op
+                if nx and key in self.store:
+                    results.append(None)
+                    continue
+                self.store[key] = value
+                self.windows.append((key, ex))
                 results.append(True)
         return results
 
@@ -87,10 +95,11 @@ class _FakePipeline:
 class _FakeRedis:
     def __init__(self, fail=False):
         self.store: dict[str, int] = {}
+        self.windows: list[tuple[str, int]] = []
         self.fail = fail
 
     def pipeline(self):
-        return _FakePipeline(self.store, self.fail)
+        return _FakePipeline(self.store, self.windows, self.fail)
 
 
 # ---------------------------------------------------------------------------
@@ -163,6 +172,34 @@ async def test_role_gates(security, key, gate, allowed):
         assert exc.value.status_code == 403
 
 
+@pytest.mark.parametrize("role", ["viewer", "operator"])
+async def test_public_deployment_grants_its_role_without_a_key(security, monkeypatch, role):
+    monkeypatch.setattr(security, "settings", _settings(public_access_role=role, api_keys={}))
+    principal = await security.require_principal(_request())
+    assert (principal.role, principal.key_fingerprint) == (role, "anonymous")
+
+
+async def test_public_deployment_never_grants_admin_anonymously(security, monkeypatch):
+    monkeypatch.setattr(security, "settings", _settings(public_access_role="operator"))
+    await security.require_operator(_request())
+    with pytest.raises(HTTPException) as exc:
+        await security.require_admin(_request())
+    assert exc.value.status_code == 403
+
+
+async def test_public_deployment_still_rejects_a_wrong_key(security, monkeypatch):
+    monkeypatch.setattr(security, "settings", _settings(public_access_role="operator"))
+    with pytest.raises(HTTPException) as exc:
+        await security.require_principal(_request({"X-API-Key": "not-a-real-key"}))
+    assert exc.value.status_code == 401
+
+
+async def test_public_deployment_still_honours_real_keys(security, monkeypatch):
+    monkeypatch.setattr(security, "settings", _settings(public_access_role="viewer"))
+    principal = await security.require_principal(_request({"X-API-Key": ADMIN_KEY}))
+    assert principal.role == "admin"
+
+
 def test_websocket_accepts_the_key_as_a_query_parameter(security):
     ws = SimpleNamespace(headers={}, query_params={"api_key": VIEWER_KEY})
     assert security.websocket_principal(ws).role == "viewer"
@@ -208,6 +245,49 @@ def test_buckets_are_per_client_and_per_route_template(security, monkeypatch):
         "rate:10.0.0.6:/api/simulations/{sim_id}": 1,
         "rate:10.0.0.5:/api/networks": 1,
     }
+
+
+def test_the_window_opens_once_and_is_not_extended(security, monkeypatch):
+    redis = _FakeRedis()
+    monkeypatch.setattr(security, "get_redis_client", lambda: redis)
+    for _ in range(3):
+        security.enforce_rate_limit(_request())
+    assert redis.windows == [("rate:10.0.0.5:/api/simulations/{sim_id}", 60)]
+
+
+def test_behind_a_proxy_the_configured_header_is_the_client(security, monkeypatch):
+    monkeypatch.setattr(security, "settings", _settings(client_ip_header="x-real-ip"))
+    redis = _FakeRedis()
+    monkeypatch.setattr(security, "get_redis_client", lambda: redis)
+
+    # Every request comes from the proxy's address; the header tells them apart.
+    for _ in range(3):
+        security.enforce_rate_limit(_request({"X-Real-IP": "203.0.113.7"}, host="10.0.0.1"))
+    security.enforce_rate_limit(_request({"X-Real-IP": "198.51.100.2"}, host="10.0.0.1"))
+    with pytest.raises(HTTPException) as exc:
+        security.enforce_rate_limit(_request({"X-Real-IP": "203.0.113.7"}, host="10.0.0.1"))
+    assert exc.value.status_code == 429
+
+
+@pytest.mark.parametrize(
+    ("header", "expected"),
+    [
+        ("203.0.113.7", "203.0.113.7"),
+        # A client can prepend anything; the proxy appends what it saw.
+        ("1.1.1.1, 203.0.113.7", "203.0.113.7"),
+        ("", "10.0.0.1"),
+        (None, "10.0.0.1"),
+    ],
+)
+def test_client_address(security, monkeypatch, header, expected):
+    monkeypatch.setattr(security, "settings", _settings(client_ip_header="x-forwarded-for"))
+    headers = {} if header is None else {"X-Forwarded-For": header}
+    assert security.client_address(_request(headers, host="10.0.0.1")) == expected
+
+
+def test_without_a_header_setting_forwarded_headers_are_ignored(security):
+    request = _request({"X-Real-IP": "203.0.113.7"}, host="10.0.0.1")
+    assert security.client_address(request) == "10.0.0.1"
 
 
 def test_limiter_outage_fails_open_outside_production(security, monkeypatch):

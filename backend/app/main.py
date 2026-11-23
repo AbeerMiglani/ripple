@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import models as _models  # noqa: F401  # Registers ORM mappers before any relationship is resolved
+from app.api.internal import router as internal_router
 from app.api.networks import router as networks_router
 from app.api.scenarios import router as scenarios_router
 from app.api.simulations import router as simulations_router
@@ -48,7 +49,9 @@ async def lifespan(app: FastAPI):
     if unavailable:
         logger.error("startup dependency check failed: %s", ", ".join(unavailable))
         raise RuntimeError(f"required services unavailable: {', '.join(unavailable)}")
-    if not verify_neo4j_connection():
+    if not settings.neo4j_enabled:
+        logger.info("neo4j disabled; centrality is computed with NetworkX")
+    elif not verify_neo4j_connection():
         logger.warning(
             "neo4j unreachable at startup; centrality will fall back to NetworkX "
             "until it recovers -- see GET /health for live status"
@@ -87,6 +90,7 @@ app.include_router(networks_router, prefix="/api")
 app.include_router(simulations_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(ws_router, prefix="/api")
+app.include_router(internal_router, prefix="/api")
 
 
 @app.get("/health/live")
@@ -111,15 +115,16 @@ def health_check():
     Returns connectivity status for each backing service.
     """
     postgres_ok = verify_postgres_connection()
-    neo4j_ok = verify_neo4j_connection()
     redis_ok = verify_redis_connection()
-    healthy = postgres_ok and neo4j_ok and redis_ok
+    # A deployment that runs without Neo4j is not degraded by its absence.
+    neo4j_ok = verify_neo4j_connection() if settings.neo4j_enabled else None
+    healthy = postgres_ok and redis_ok and neo4j_ok is not False
 
     payload = {
         "status": "ok" if healthy else "degraded",
         "services": {
             "postgres": "ok" if postgres_ok else "unreachable",
-            "neo4j": "ok" if neo4j_ok else "unreachable",
+            "neo4j": "disabled" if neo4j_ok is None else "ok" if neo4j_ok else "unreachable",
             "redis": "ok" if redis_ok else "unreachable",
         },
     }

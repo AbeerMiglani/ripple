@@ -149,9 +149,10 @@ def ingest_seed_data(db: Session, force: bool = False, source: str | None = None
         raise
 
     # Synchronize the read-optimized mirror only after canonical data commits.
-    if replaced_network_id:
-        clear_network_from_neo4j(replaced_network_id)
-    sync_network_to_neo4j(db, str(net_id))
+    if settings.neo4j_enabled:
+        if replaced_network_id:
+            clear_network_from_neo4j(replaced_network_id)
+        sync_network_to_neo4j(db, str(net_id))
     try:
         # Cache keys are "centrality:{id}:{metric}", so each metric must be
         # dropped explicitly; the old unsuffixed delete matched nothing and left

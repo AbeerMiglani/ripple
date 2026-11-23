@@ -221,7 +221,11 @@ def calculate_centrality(
 
     ranked_results: list[dict[str, Any]] = []
 
-    if metric == "betweenness":
+    if metric not in _GDS_ALGORITHMS:
+        raise ValueError(f"Unsupported centrality metric: {metric}")
+    if not settings.neo4j_enabled:
+        ranked_results = _run_nx(network_id, metric, db)
+    elif metric == "betweenness":
         try:
             ranked_results = calculate_betweenness_gds(network_id)
         except Exception:
@@ -233,8 +237,6 @@ def calculate_centrality(
         except Exception:
             logger.warning("Neo4j GDS pagerank failed; falling back to NetworkX", exc_info=True)
             ranked_results = calculate_pagerank_nx(network_id, db=db)
-    else:
-        raise ValueError(f"Unsupported centrality metric: {metric}")
 
     if settings.centrality_cache_ttl_seconds and ranked_results:
         try:

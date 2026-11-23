@@ -123,16 +123,22 @@ if LEAN_SETTINGS:
 LEAN_SETTINGS_DEFAULTS: dict = {
     "environment": "test",
     "database_url": "postgresql+psycopg2://ripple:ripple_dev@localhost:5432/ripple",
+    "db_pool_size": 10,
+    "db_max_overflow": 20,
+    "neo4j_enabled": True,
     "neo4j_uri": "bolt://localhost:7687",
     "neo4j_user": "neo4j",
     "neo4j_password": "ripple_dev_neo4j",
     "redis_url": "redis://:ripple_dev@localhost:6379/0",
+    "simulation_execution": "celery",
     "celery_broker_url": "redis://:ripple_dev@localhost:6379/0",
     "celery_result_backend": "redis://:ripple_dev@localhost:6379/1",
     "cors_origins": ["http://localhost:5173", "http://localhost:3000"],
     "api_key_auth_enabled": False,
     "api_keys": {},
+    "public_access_role": "none",
     "rate_limit_per_minute": 60,
+    "client_ip_header": None,
     "max_initial_failures": 25,
     "max_scenario_modifications": 20,
     "centrality_cache_ttl_seconds": 300,
@@ -143,6 +149,8 @@ LEAN_SETTINGS_DEFAULTS: dict = {
     "osm_place": "Manipal, Karnataka, India",
     "osm_network_type": "drive",
     "osm_cache_dir": "/data/osm",
+    "cron_secret": None,
+    "retention_days": 7,
 }
 
 # Real settings, not a MagicMock. A Mock answers every attribute with a truthy

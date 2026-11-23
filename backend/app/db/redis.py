@@ -15,12 +15,23 @@ from app.config import settings
 _pool = None
 _async_pool = None
 
+#: Bounds every Redis call, so an unreachable server fails a request in
+#: seconds instead of holding it until the host's own timeout. The health
+#: check re-validates a connection idle for longer than this many seconds,
+#: since hosted Redis closes idle connections server-side.
+_CONNECTION_OPTIONS = {
+    "decode_responses": True,
+    "socket_connect_timeout": 5,
+    "socket_timeout": 5,
+    "health_check_interval": 30,
+}
+
 
 def get_redis_pool():
     """Lazy-initialize and return a Redis connection pool."""
     global _pool
     if _pool is None:
-        _pool = redis.ConnectionPool.from_url(settings.redis_url, decode_responses=True)
+        _pool = redis.ConnectionPool.from_url(settings.redis_url, **_CONNECTION_OPTIONS)
     return _pool
 
 
@@ -33,7 +44,11 @@ def get_async_redis_client() -> async_redis.Redis:
     """Return a non-blocking Redis client for ASGI/WebSocket paths."""
     global _async_pool
     if _async_pool is None:
-        _async_pool = async_redis.ConnectionPool.from_url(settings.redis_url, decode_responses=True)
+        # No socket_timeout here: a WebSocket's pub/sub listener legitimately
+        # waits on a quiet channel for longer than any fixed bound.
+        _async_pool = async_redis.ConnectionPool.from_url(
+            settings.redis_url, decode_responses=True, socket_connect_timeout=5
+        )
     return async_redis.Redis(connection_pool=_async_pool)
 
 

@@ -6,13 +6,14 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.postgres import get_db
 from app.models.network import Network, Node, Scenario, SimulationResult
 from app.schemas.simulation import SimulationCreate, SimulationResponse, WaveSchema
 from app.security import enforce_rate_limit, require_operator, require_viewer
 from app.services.recommendation_cache import MAX_RECOMMENDATIONS, cached_recommendations
 from app.services.recommendations import MitigationRecommendation
-from app.simulation.runner import run_simulation_task
+from app.simulation.runner import run_simulation_inline, run_simulation_task
 
 #: Re-exported: these were declared inline here and had already drifted from
 #: app.schemas.simulation by two fields. There is now one definition, and this
@@ -78,6 +79,19 @@ def create_simulation(
     db.add(sim)
     db.commit()
     db.refresh(sim)
+
+    if settings.simulation_execution == "inline":
+        # No worker on this host: run it now and answer with the finished
+        # (or failed) run. A failure is recorded on the row, not raised.
+        run_simulation_inline(
+            db,
+            simulation_id=str(sim.id),
+            network_id=str(req.network_id),
+            initial_failures=[str(uid) for uid in req.initial_failures],
+            scenario_id=str(req.scenario_id) if req.scenario_id else None,
+        )
+        db.refresh(sim)
+        return sim
 
     # Dispatch after the durable row exists. A dispatch failure is recorded so
     # callers never poll a permanently pending job.

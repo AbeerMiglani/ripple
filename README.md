@@ -5,6 +5,10 @@
 > whose loss does the most damage, and recommends interventions verified by
 > resimulation rather than heuristic estimates.
 
+**Live demo:** [ripple.abeermiglani.com](https://ripple.abeermiglani.com/). It is
+public: no sign-in is needed, requests are rate limited per visitor, and runs
+and scenarios are deleted after 7 days.
+
 ---
 
 ## Quick Start
@@ -135,6 +139,64 @@ installed.
 > `./demo up` has **not** been verified in the restricted environment this was
 > developed in, where Docker image-layer downloads are blocked. Please report
 > anything that behaves differently on a machine with normal registry access.
+
+---
+
+## Deploying to Vercel
+
+The live demo runs on Vercel as one project: the FastAPI app is a Vercel
+Function, and the built frontend is served from the CDN beside it, so the
+browser calls `/api` on the same origin. The Docker stack's Celery worker and
+Neo4j are left out; three settings switch the backend to match, and all of them
+default to the Docker behaviour:
+
+| Setting | Value on Vercel | Effect |
+| --- | --- | --- |
+| `SIMULATION_EXECUTION` | `inline` | A run executes inside the request that starts it, so the POST answers with the finished result. A run on the demo network takes milliseconds. |
+| `NEO4J_ENABLED` | `false` | Centrality is computed with NetworkX, which ranks the same as GDS. `/health` reports Neo4j as `disabled`. |
+| `PUBLIC_ACCESS_ROLE` | `operator` | Visitors without an API key can view and run simulations. Admin is never granted without a key. |
+
+Project setup (once):
+
+1. Create a Vercel project from this repository with **Root Directory** set
+   to `backend`. Vercel detects FastAPI from `[tool.vercel]` in
+   `backend/pyproject.toml`. Keep "Include files outside the root directory in
+   the Build Step" on, because the build reads `frontend/` and `data/seed/`.
+2. From the Vercel Marketplace, connect **Neon** (Postgres) and **Upstash**
+   (Redis) to the project. They set `DATABASE_URL`, `DATABASE_URL_UNPOOLED`
+   and `REDIS_URL`/`KV_URL`. Pick the Singapore region for both, to match the
+   function region in `backend/vercel.json`.
+3. Set these environment variables for Production and Preview:
+
+   ```text
+   ENVIRONMENT=production
+   SIMULATION_EXECUTION=inline
+   NEO4J_ENABLED=false
+   API_KEY_AUTH_ENABLED=true
+   PUBLIC_ACCESS_ROLE=operator
+   CLIENT_IP_HEADER=x-real-ip
+   CORS_ORIGINS=["https://ripple.abeermiglani.com"]
+   DB_POOL_SIZE=2
+   DB_MAX_OVERFLOW=3
+   CRON_SECRET=<a random string of 16+ characters, marked Sensitive>
+   ```
+
+Each deployment runs `backend/scripts/vercel_build.sh`. It migrates the
+database, seeds the demo network if it is missing (an existing network is
+kept, so saved runs stay valid), and builds the frontend into
+`backend/public/`. A daily Vercel Cron calls `GET /api/internal/cleanup`, which
+deletes runs and scenarios older than `RETENTION_DAYS` (default 7). It only
+accepts the `Authorization: Bearer $CRON_SECRET` header that Vercel sends.
+
+Preview deployments run the same build. Unless Neon's per-preview database
+branches are enabled, they migrate the same database as production, so a pull
+request that adds a migration applies it before it is merged.
+
+To check a deployment end to end:
+
+```bash
+RIPPLE_BASE_URL=https://ripple.abeermiglani.com/api python e2e_test.py
+```
 
 ---
 

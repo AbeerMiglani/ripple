@@ -50,6 +50,14 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["."]
 
+# Vercel deployment (README: "Deploying to Vercel"). The app is the same one
+# uvicorn serves; the build script migrates, seeds and builds the frontend.
+[tool.vercel]
+entrypoint = "app.main:app"
+
+[tool.vercel.scripts]
+build = "bash scripts/vercel_build.sh"
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100

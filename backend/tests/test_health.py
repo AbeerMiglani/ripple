@@ -11,6 +11,7 @@ depending on test collection order. A subprocess sidesteps that entirely.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -49,3 +50,40 @@ def test_liveness_check_returns_ok_without_touching_datastores():
         raise AssertionError(f"liveness_check() subprocess failed:\n{result.stderr}")
 
     assert result.stdout.strip() == '{"status": "ok"}'
+
+
+_HEALTH_SCRIPT = """
+import json
+from app import main
+main.verify_postgres_connection = lambda: True
+main.verify_redis_connection = lambda: True
+def neo4j_unreachable():
+    raise SystemExit("verify_neo4j_connection must not be called")
+main.verify_neo4j_connection = neo4j_unreachable
+print(json.dumps(main.health_check()))
+"""
+
+
+def test_health_reports_a_disabled_neo4j_without_degrading():
+    """With NEO4J_ENABLED=false (the Vercel deployment) Neo4j is never
+    contacted, and its absence does not turn readiness into a 503."""
+    import os
+
+    result = subprocess.run(
+        [sys.executable, "-c", _HEALTH_SCRIPT],
+        cwd=BACKEND_DIR,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={**os.environ, "NEO4J_ENABLED": "false", "ENVIRONMENT": "development"},
+    )
+    if result.returncode != 0:
+        if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
+            pytest.skip(f"full backend dependencies not importable:\n{result.stderr}")
+        raise AssertionError(f"health_check() subprocess failed:\n{result.stderr}{result.stdout}")
+
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload == {
+        "status": "ok",
+        "services": {"postgres": "ok", "neo4j": "disabled", "redis": "ok"},
+    }
