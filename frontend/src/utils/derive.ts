@@ -64,7 +64,6 @@ export function buildExplanation(params: {
   const { result, nodes, topRecommendation, verifiedComparison } = params;
   const failed = failedNodeIdsForResult(result);
   const critical = criticalServicesOffline(nodes, failed);
-  const isVerifiedView = !!verifiedComparison;
   const activeResult = verifiedComparison?.scenario ?? result;
 
   const entries: ExplanationEntry[] = [];
@@ -75,7 +74,9 @@ export function buildExplanation(params: {
     field: "waves · total_failed",
     text: result.cascade_stabilized === false
       ? `The seeded initial failure triggered a cascade that was still spreading when it reached the ${result.waves.length}-wave guardrail, so the run was bounded and recorded as truncated — ${result.total_failed} assets failed up to that point.`
-      : `The seeded initial failure propagated through the network's dependency and road links and settled after ${result.waves.length} wave${result.waves.length === 1 ? "" : "s"}, with ${activeResult.total_failed} asset${activeResult.total_failed === 1 ? "" : "s"} failed${isVerifiedView ? ` (was ${result.total_failed})` : ""}.`,
+      : `The seeded initial failure propagated through the network's dependency and road links and settled after ${result.waves.length} wave${result.waves.length === 1 ? "" : "s"}, with ${activeResult.total_failed} asset${activeResult.total_failed === 1 ? "" : "s"} failed${
+          verifiedComparison ? ` (was ${verifiedComparison.baseline.total_failed} before the intervention)` : ""
+        }.`,
   });
 
   entries.push({
@@ -125,7 +126,11 @@ export function buildExplanation(params: {
       category: "Verified rerun",
       color: "var(--rp-mute)",
       field: "verified",
-      text: `Not yet run. The rank-${topRecommendation.rank} candidate projects −${topRecommendation.failures_prevented} failures from an in-memory resimulation of the candidate graph; nothing is recorded as verified until the rerun is executed.`,
+      text: `Not yet run. The rank-${topRecommendation.rank} candidate projects ${
+        topRecommendation.failures_prevented > 0
+          ? `−${topRecommendation.failures_prevented} failures`
+          : "no fewer failures"
+      } from an in-memory resimulation of the candidate graph; nothing is recorded as verified until the rerun is executed.`,
     });
   }
 

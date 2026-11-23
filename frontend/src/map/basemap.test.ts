@@ -75,6 +75,18 @@ describe("basemap tiles", () => {
   });
 });
 
+describe("basemap rendering in a production build", () => {
+  // MapLibre parses tiles in a worker it locates next to its own module; once
+  // bundled, that file does not exist, and the basemap is blank while the dev
+  // server still works. MapView must hand it a worker the build emits.
+  const mapView = readFileSync(fileURLToPath(new URL("../components/MapView.tsx", import.meta.url)), "utf-8");
+
+  it("points MapLibre at a worker Vite bundles", () => {
+    expect(mapView).toMatch(/from "maplibre-gl\/dist\/maplibre-gl-worker\.mjs\?worker&url"/);
+    expect(mapView).toMatch(/maplibregl\.setWorkerUrl\(maplibreWorkerUrl\)/);
+  });
+});
+
 describe("basemap style assets", () => {
   const style = basemapStyle("http://localhost:5173");
 

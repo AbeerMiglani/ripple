@@ -114,6 +114,32 @@ interface SimulationState {
   clearRecovery: () => void;
   /** Mark the assets an intervention rescued, for the map/graph highlight. */
   setSavedNodes: (saved: Set<string>) => void;
+  /**
+   * Drop a run or scenario the server no longer has: deleted by the hosted
+   * site's retention cleanup, or left behind when the database was re-seeded.
+   * Kept in history, it would be offered for comparison and fail every time.
+   */
+  forgetSimulation: (id: string) => void;
+  forgetScenario: (id: string) => void;
+}
+
+/**
+ * The stored baseline run and last applied scenario, if they belong to
+ * `networkId`. History persists across re-seeds (which mint a new network id)
+ * and is shared by every network in the app, so an id from another network
+ * would only ever fail to compare.
+ */
+export function storedIdsForNetwork(
+  state: Pick<SimulationState, "simulations" | "scenarios" | "baselineSimulationId" | "lastAppliedScenarioId">,
+  networkId: string | null
+): { baselineId: string | null; scenarioId: string | null } {
+  const inNetwork = (entry?: { network_id: string }) => !!entry && (!networkId || entry.network_id === networkId);
+  const baseline = state.simulations.find((s) => s.id === state.baselineSimulationId);
+  const scenario = state.scenarios.find((s) => s.id === state.lastAppliedScenarioId);
+  return {
+    baselineId: inNetwork(baseline) ? state.baselineSimulationId : null,
+    scenarioId: inNetwork(scenario) ? state.lastAppliedScenarioId : null,
+  };
 }
 
 const initialSims = getInitialSimulations();
@@ -146,7 +172,12 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     let newBaselineId = state.baselineSimulationId;
 
     if (result.status === "completed") {
-      const isBaseline = !state.baselineSimulationId || updatedSims.length === 0;
+      // A baseline from another network (history kept across a re-seed) is no
+      // baseline for this one: compare would only ever reject the pair.
+      const currentBaseline = updatedSims.find((s) => s.id === state.baselineSimulationId);
+      // A what-if run (one with a scenario) is never itself a baseline.
+      const isBaseline =
+        !result.scenario_id && (!currentBaseline || currentBaseline.network_id !== result.network_id);
       const simEntry: StoredSim = {
         id: result.id,
         network_id: result.network_id,
@@ -162,7 +193,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           window.dispatchEvent(new Event("ripple_simulations_updated"));
         } catch {}
       }
-      if (isBaseline && !newBaselineId) {
+      if (isBaseline) {
         newBaselineId = result.id;
       }
     }
@@ -250,10 +281,15 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
   play: () => {
     const { animationTimer, result, currentWave } = get();
-    if (!result || result.status !== "completed") return;
+    if (!result || result.status !== "completed" || result.waves.length === 0) return;
 
     if (animationTimer) clearInterval(animationTimer);
-    if (currentWave >= result.waves.length - 1) return;
+    // At the last wave, Play replays the cascade from the start. It used to
+    // return here, which left the Play button doing nothing once the
+    // animation had finished.
+    if (currentWave >= result.waves.length - 1) {
+      set({ currentWave: -1, failedNodeIds: new Set(), restoredNodeIds: new Set(), recoveryStageIndex: -1 });
+    }
 
     get().advanceWave();
     const timer = setInterval(() => {
@@ -352,4 +388,30 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   clearRecovery: () => set({ restoredNodeIds: new Set(), recoveryStageIndex: -1 }),
 
   setSavedNodes: (saved) => set({ savedNodeIds: new Set(saved) }),
+
+  forgetSimulation: (id) => {
+    const { simulations, baselineSimulationId } = get();
+    const updated = simulations.filter((s) => s.id !== id);
+    try {
+      localStorage.setItem("ripple_simulations", JSON.stringify(updated));
+    } catch {}
+    set({
+      simulations: updated,
+      // Cleared rather than reassigned: any other stored run may be just as
+      // stale. The next completed run becomes the baseline.
+      baselineSimulationId: baselineSimulationId === id ? null : baselineSimulationId,
+    });
+  },
+
+  forgetScenario: (id) => {
+    const { scenarios, lastAppliedScenarioId } = get();
+    const updated = scenarios.filter((s) => s.id !== id);
+    try {
+      localStorage.setItem("ripple_scenarios", JSON.stringify(updated));
+    } catch {}
+    set({
+      scenarios: updated,
+      lastAppliedScenarioId: lastAppliedScenarioId === id ? null : lastAppliedScenarioId,
+    });
+  },
 }));

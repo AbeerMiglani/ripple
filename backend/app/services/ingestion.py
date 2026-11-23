@@ -149,9 +149,10 @@ def ingest_seed_data(db: Session, force: bool = False, source: str | None = None
         raise
 
     # Synchronize the read-optimized mirror only after canonical data commits.
-    if replaced_network_id:
-        clear_network_from_neo4j(replaced_network_id)
-    sync_network_to_neo4j(db, str(net_id))
+    if settings.neo4j_enabled:
+        if replaced_network_id:
+            clear_network_from_neo4j(replaced_network_id)
+        sync_network_to_neo4j(db, str(net_id))
     try:
         # Cache keys are "centrality:{id}:{metric}", so each metric must be
         # dropped explicitly; the old unsuffixed delete matched nothing and left
@@ -174,6 +175,10 @@ if __name__ == "__main__":
     import argparse
 
     from app.db.postgres import SessionLocal
+    from app.logging_config import configure_logging
+
+    # Report the outcome (seeded, or already there) in deploy and build logs.
+    configure_logging()
 
     parser = argparse.ArgumentParser(description="Ingest the Ripple baseline network")
     parser.add_argument("--force", action="store_true", help="replace the existing named demo network")

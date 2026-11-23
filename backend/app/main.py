@@ -6,11 +6,13 @@ Entry point: uvicorn app.main:app --reload
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import models as _models  # noqa: F401  # Registers ORM mappers before any relationship is resolved
+from app.api.internal import router as internal_router
 from app.api.networks import router as networks_router
 from app.api.scenarios import router as scenarios_router
 from app.api.simulations import router as simulations_router
@@ -48,7 +50,9 @@ async def lifespan(app: FastAPI):
     if unavailable:
         logger.error("startup dependency check failed: %s", ", ".join(unavailable))
         raise RuntimeError(f"required services unavailable: {', '.join(unavailable)}")
-    if not verify_neo4j_connection():
+    if not settings.neo4j_enabled:
+        logger.info("neo4j disabled; centrality is computed with NetworkX")
+    elif not verify_neo4j_connection():
         logger.warning(
             "neo4j unreachable at startup; centrality will fall back to NetworkX "
             "until it recovers -- see GET /health for live status"
@@ -87,6 +91,7 @@ app.include_router(networks_router, prefix="/api")
 app.include_router(simulations_router, prefix="/api")
 app.include_router(scenarios_router, prefix="/api")
 app.include_router(ws_router, prefix="/api")
+app.include_router(internal_router, prefix="/api")
 
 
 @app.get("/health/live")
@@ -111,18 +116,43 @@ def health_check():
     Returns connectivity status for each backing service.
     """
     postgres_ok = verify_postgres_connection()
-    neo4j_ok = verify_neo4j_connection()
     redis_ok = verify_redis_connection()
-    healthy = postgres_ok and neo4j_ok and redis_ok
+    # A deployment that runs without Neo4j is not degraded by its absence.
+    neo4j_ok = verify_neo4j_connection() if settings.neo4j_enabled else None
+    healthy = postgres_ok and redis_ok and neo4j_ok is not False
 
     payload = {
         "status": "ok" if healthy else "degraded",
         "services": {
             "postgres": "ok" if postgres_ok else "unreachable",
-            "neo4j": "ok" if neo4j_ok else "unreachable",
+            "neo4j": "disabled" if neo4j_ok is None else "ok" if neo4j_ok else "unreachable",
             "redis": "ok" if redis_ok else "unreachable",
         },
     }
     if not healthy:
         raise HTTPException(status_code=503, detail=payload)
     return payload
+
+
+#: The built frontend, when there is one: backend/scripts/vercel_build.sh
+#: writes it here for the Vercel deployment. Served as low-priority routes, so
+#: every API route above still matches first. On Vercel, the files are also
+#: promoted to the CDN at build time ([tool.vercel.fastapi.static] in
+#: pyproject.toml). Not "public/": Vercel kept a directory of that name out of
+#: the function and did not serve the one this build creates either. The
+#: Docker stack and local development serve the frontend from Vite instead and
+#: have no build.
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "dist"
+
+
+def serve_frontend(target: FastAPI, directory: Path) -> bool:
+    """Serve the frontend build in ``directory`` at "/", if there is one."""
+    if not (directory / "index.html").is_file():
+        return False
+    # No fallback: the app is the one page at "/", and an unknown path (an
+    # unknown /api route above all) should stay a 404, not turn into the page.
+    target.frontend("/", directory=directory, fallback=None)
+    return True
+
+
+serve_frontend(app, FRONTEND_DIR)

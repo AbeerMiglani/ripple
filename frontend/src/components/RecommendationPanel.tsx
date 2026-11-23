@@ -93,7 +93,6 @@ export default function RecommendationPanel() {
   const result = useSimulationStore((s) => s.result);
   const isRunning = useSimulationStore((s) => s.isRunning);
   const setSimulationResult = useSimulationStore((s) => s.setSimulationResult);
-  const baselineSimulationId = useSimulationStore((s) => s.baselineSimulationId);
   const setBaselineSimulationId = useSimulationStore((s) => s.setBaselineSimulationId);
   const registerScenario = useSimulationStore((s) => s.registerScenario);
   const setLastAppliedScenarioId = useSimulationStore((s) => s.setLastAppliedScenarioId);
@@ -141,8 +140,11 @@ export default function RecommendationPanel() {
   const recommendations = mitigations?.slice(0, PANEL_LIMIT);
 
   const runInterventionSequence = async (rec: MitigationRecommendation, baseline: SimulationResult) => {
-    // Ensure baselineSimulationId is saved before running the what-if scenario.
-    if (!baselineSimulationId) setBaselineSimulationId(baseline.id);
+    // The run this intervention was derived from is the baseline to compare
+    // it against. Only setting it when none was stored left the session's
+    // first run in place, so after a second demo the comparison paired a
+    // scenario with an unrelated baseline and the server rejected it.
+    setBaselineSimulationId(baseline.id);
 
     const scenario = await createScenario(rec.scenario_payload);
 
@@ -167,7 +169,7 @@ export default function RecommendationPanel() {
       "Failed to start simulation"
     );
 
-    const pollData = await pollSimulationUntilSettled(simData.id);
+    const pollData = await pollSimulationUntilSettled(simData);
     addSimulation(
       {
         id: pollData.id,

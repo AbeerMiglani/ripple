@@ -16,13 +16,18 @@ Exercises the complete resilience workflow:
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import urllib.error
 import urllib.request
 from typing import Any
 
-BASE_URL = "http://localhost:8000/api"
+#: The API under test. RIPPLE_BASE_URL points it at another deployment, e.g.
+#: RIPPLE_BASE_URL=https://ripple.example.com/api for a hosted one.
+BASE_URL = os.environ.get("RIPPLE_BASE_URL", "http://localhost:8000/api").rstrip("/")
+#: Sent as X-API-Key when set, for a deployment that requires one.
+API_KEY = os.environ.get("RIPPLE_API_KEY")
 TIMEOUT_SECS = 30
 #: Bounded number of candidate seed nodes to simulate while looking for one
 #: whose failure genuinely cascades.
@@ -31,6 +36,9 @@ MAX_SEED_PROBES = 8
 
 def request(url: str, method: str = "GET", data: dict[str, Any] | None = None) -> Any:
     req = urllib.request.Request(url, method=method)
+    req.add_header("User-Agent", "ripple-e2e")
+    if API_KEY:
+        req.add_header("X-API-Key", API_KEY)
     if data is not None:
         req.add_header("Content-Type", "application/json")
         req.data = json.dumps(data).encode("utf-8")

@@ -17,6 +17,12 @@ import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 // (named exports only); a namespace import still gives maplibregl.Map,
 // maplibregl.NavigationControl etc. exactly as the default import used to.
 import * as maplibregl from "maplibre-gl";
+// MapLibre parses tiles in a web worker, which it looks for next to its own
+// module. Bundled into the app, that resolves to /assets/maplibre-gl-worker.mjs,
+// a file the production build never emits, so the basemap stayed blank in a
+// built site (the dev server serves node_modules as-is and hid this). Vite
+// bundles the worker, with its shared chunk, into one file of its own here.
+import maplibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import { Protocol as PMTilesProtocol } from "pmtiles";
 import { Deck } from "@deck.gl/core";
 import { ScatterplotLayer, LineLayer } from "@deck.gl/layers";
@@ -67,6 +73,8 @@ const EDGE_COLORS: Record<EdgeType, [number, number, number, number]> = {
 let pmtilesProtocolRegistered = false;
 function ensurePmtilesProtocolRegistered() {
   if (pmtilesProtocolRegistered) return;
+  // Before any Map exists, which is when MapLibre starts its workers.
+  maplibregl.setWorkerUrl(maplibreWorkerUrl);
   const protocol = new PMTilesProtocol();
   maplibregl.addProtocol("pmtiles", protocol.tile);
   pmtilesProtocolRegistered = true;

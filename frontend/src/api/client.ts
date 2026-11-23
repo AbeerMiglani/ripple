@@ -54,11 +54,34 @@ export async function readErrorMessage(res: Response, fallback: string): Promise
   return errorDetail(body) ?? `${fallback} (HTTP ${res.status})`;
 }
 
-/** `fetch` + status check + JSON decode. Throws an `Error` carrying the server's reason. */
+/** A failed API call: the server's reason as the message, plus the HTTP status. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** True when `err` is an API response saying the requested record does not exist. */
+export function isNotFound(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
+
+/** `fetch` + status check + JSON decode. Throws an `ApiError` carrying the server's reason. */
 export async function apiFetch<T>(url: string, fallback: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
-  if (!res.ok) throw new Error(await readErrorMessage(res, fallback));
+  if (!res.ok) throw new ApiError(await readErrorMessage(res, fallback), res.status);
   return (await res.json()) as T;
+}
+
+/** Whether a record still exists: false only on a definite 404, true otherwise (including network errors). */
+export async function recordExists(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url);
+    return res.status !== 404;
+  } catch {
+    return true;
+  }
 }
 
 /** `apiFetch` for a JSON POST. */

@@ -32,6 +32,11 @@ def _authenticate(value: str | None) -> Principal:
 
     key = _presented_api_key(value)
     if not key:
+        # A public deployment serves keyless visitors at a fixed, bounded role.
+        # A key that is presented must still be valid: a wrong key is an error,
+        # not a silent downgrade to anonymous.
+        if settings.public_access_role != "none":
+            return Principal(key_fingerprint="anonymous", role=settings.public_access_role)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="API key required")
 
     for configured_key, role in settings.api_keys.items():
@@ -63,21 +68,41 @@ async def require_admin(request: Request) -> Principal:
     return principal
 
 
+def client_address(request: Request) -> str:
+    """The address rate limits are counted against.
+
+    Behind a reverse proxy every request arrives from the proxy, so the
+    configured header carries the visitor's address instead. Its last
+    comma-separated entry is used: a proxy that appends to a list adds the
+    address it saw at the end, while anything earlier came from the client.
+    """
+    if settings.client_ip_header:
+        forwarded = request.headers.get(settings.client_ip_header)
+        if forwarded:
+            address = forwarded.split(",")[-1].strip()
+            if address:
+                return address
+    return request.client.host if request.client else "unknown"
+
+
 def enforce_rate_limit(request: Request) -> None:
     """Bound API abuse with a fixed-window Redis counter.
 
     Authentication is the primary boundary. This intentionally fails closed in
     production when the limiter cannot reach Redis.
     """
-    client_host = request.client.host if request.client else "unknown"
+    client_host = client_address(request)
     route = request.scope.get("route")
     route_path = getattr(route, "path", request.url.path)
     bucket = f"rate:{client_host}:{route_path}"
     try:
         pipe = get_redis_client().pipeline()
+        # The first request opens the window; INCR keeps its expiry. SET NX EX
+        # rather than EXPIRE NX, which needs Redis 7 and which not every
+        # hosted Redis accepts -- and a limiter error fails production closed.
+        pipe.set(bucket, 0, ex=60, nx=True)
         pipe.incr(bucket)
-        pipe.expire(bucket, 60, nx=True)
-        count, _ = pipe.execute()
+        _, count = pipe.execute()
     except Exception as exc:
         logger.warning("rate limiter unavailable", exc_info=exc)
         if settings.environment == "production":
